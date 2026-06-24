@@ -1,27 +1,32 @@
 /* ============================================================
-   Halaman absen (index.html) — login Email + Password
+   Halaman absen (index.html) — identitas berbasis perangkat
+   Cek perangkat -> (daftar / pending / blokir / absen).
+   Absen: jenis & status otomatis di server, tanpa foto.
+   Jurnal: wajib foto + deskripsi. Pengingat jurnal tiap N menit.
    ============================================================ */
 
 (function () {
   "use strict";
 
   const $ = function (id) { return document.getElementById(id); };
+  const deviceId = getDeviceId();
 
   const elJamTime = document.querySelector(".clock-time");
   const elJamDate = document.querySelector(".clock-date");
   const pesan = $("pesan");
 
   const seksi = {
-    auth: $("seksi-auth"),
     loading: $("seksi-loading"),
+    daftar: $("seksi-daftar"),
     pending: $("seksi-pending"),
     blokir: $("seksi-blokir"),
     absen: $("seksi-absen")
   };
 
   let lokasiAbsen = null, lokasiJurnal = null, fotoJurnal = null;
-  let emailSaya = "";
   let reminderTimer = null;
+
+  $("device-id-singkat").textContent = deviceId.slice(0, 8) + "…";
 
   /* ---------- Jam ---------- */
   const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
@@ -38,7 +43,6 @@
   /* ---------- Util ---------- */
   function tampil(nama) { Object.keys(seksi).forEach(function (k) { seksi[k].classList.toggle("hidden", k !== nama); }); }
   function tampilkanPesan(teks, ok) { pesan.textContent = teks; pesan.className = "pesan " + (ok ? "ok" : "err"); pesan.classList.remove("hidden"); }
-  function authPesan(teks, ok) { const el = $("auth-pesan"); el.textContent = teks; el.className = "status " + (ok ? "ok" : "err"); }
 
   function ambilLokasi(elStatus, btn, simpan) {
     if (!navigator.geolocation) { elStatus.textContent = "Browser tidak mendukung GPS."; elStatus.className = "status err"; return; }
@@ -66,96 +70,52 @@
     img.src = dataUrl;
   }
 
-  /* ---------- Tab Login/Daftar ---------- */
-  document.querySelectorAll("#seksi-auth .tab").forEach(function (t) {
-    t.addEventListener("click", function () {
-      document.querySelectorAll("#seksi-auth .tab").forEach(function (x) { x.classList.remove("aktif"); });
-      t.classList.add("aktif");
-      const pane = t.getAttribute("data-auth");
-      $("pane-login").classList.toggle("hidden", pane !== "pane-login");
-      $("pane-daftar").classList.toggle("hidden", pane !== "pane-daftar");
-      authPesan("", true);
-    });
-  });
-
-  /* ---------- Login ---------- */
-  $("form-login").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    if (API.belumDikonfigurasi()) { authPesan("Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL).", false); return; }
-    const btn = $("btn-login"); btn.disabled = true; btn.textContent = "Masuk...";
-    API.post({ action: "login", token: "", email: $("l-email").value.trim(), password: $("l-password").value })
+  /* ---------- Cek perangkat ---------- */
+  function cekStatus() {
+    if (API.belumDikonfigurasi()) {
+      seksi.loading.textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL di js/config.js).";
+      seksi.loading.className = "status err center"; return;
+    }
+    tampil("loading");
+    seksi.loading.textContent = "Memeriksa status perangkat..."; seksi.loading.className = "status muted center";
+    API.post({ action: "cekPerangkat" })
       .then(function (res) {
-        if (res.status === "success") { Sesi.set(res.token); routeAkun(res); }
-        else authPesan(res.message || "Gagal login.", false);
+        if (res.status !== "success") throw new Error(res.message || "gagal");
+        if (res.jamMasuk && res.jamPulang) {
+          $("info-jam-kerja").textContent = "Jam kerja: masuk " + res.jamMasuk + " • pulang " + res.jamPulang + " (jenis & status otomatis)";
+        }
+        if (!res.terdaftar) { tampil("daftar"); return; }
+        if (res.deviceStatus === "disetujui") {
+          $("absen-nama").textContent = res.nama || "";
+          $("absen-nip").textContent = res.nip ? "• " + res.nip : "";
+          tampil("absen"); mulaiReminder();
+        } else if (res.deviceStatus === "pending") {
+          $("pending-nama").textContent = res.nama || ""; tampil("pending");
+        } else { tampil("blokir"); }
       })
-      .catch(function (err) { authPesan("Gagal: " + err.message, false); })
-      .finally(function () { btn.disabled = false; btn.textContent = "Masuk"; });
-  });
+      .catch(function (err) {
+        seksi.loading.textContent = "Gagal memeriksa status: " + err.message;
+        seksi.loading.className = "status err center"; tampil("loading");
+      });
+  }
 
   /* ---------- Daftar ---------- */
   $("form-daftar").addEventListener("submit", function (ev) {
     ev.preventDefault();
-    if (API.belumDikonfigurasi()) { authPesan("Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL).", false); return; }
-    const btn = $("btn-daftar"); btn.disabled = true; btn.textContent = "Mendaftar...";
-    API.post({
-      action: "daftar", token: "",
-      nama: $("d-nama").value.trim(), email: $("d-email").value.trim(),
-      nip: $("d-nip").value.trim(), password: $("d-password").value
-    })
+    const nama = $("d-nama").value.trim();
+    if (!nama) { tampilkanPesan("Nama wajib diisi.", false); return; }
+    const btn = $("btn-daftar"); btn.disabled = true; btn.textContent = "Mengirim...";
+    API.post({ action: "daftarPerangkat", nama: nama, nip: $("d-nip").value.trim() })
       .then(function (res) {
-        if (res.status === "success") {
-          authPesan("✔ " + res.message, true);
-          // pindah ke tab login, isikan email
-          document.querySelector('#seksi-auth .tab[data-auth="pane-login"]').click();
-          $("l-email").value = $("d-email").value.trim();
-          $("form-daftar").reset();
-        } else authPesan(res.message || "Gagal mendaftar.", false);
+        if (res.status === "success") { $("pending-nama").textContent = nama; tampil("pending"); pesan.classList.add("hidden"); }
+        else tampilkanPesan("Gagal: " + (res.message || "kesalahan"), false);
       })
-      .catch(function (err) { authPesan("Gagal: " + err.message, false); })
-      .finally(function () { btn.disabled = false; btn.textContent = "Daftar"; });
+      .catch(function (err) { tampilkanPesan("Gagal mendaftar: " + err.message, false); })
+      .finally(function () { btn.disabled = false; btn.textContent = "Daftarkan Perangkat"; });
   });
 
-  /* ---------- Routing akun ---------- */
-  function routeAkun(res) {
-    emailSaya = (res.email || $("l-email").value.trim() || "").toLowerCase();
-    $("footer-akun").classList.remove("hidden");
-    $("footer-email").textContent = emailSaya;
-    if (res.jamMasuk && res.jamPulang) {
-      $("info-jam-kerja").textContent = "Jam kerja: masuk " + res.jamMasuk + " • pulang " + res.jamPulang + " (jenis & status otomatis)";
-    }
-    if (res.akunStatus === "disetujui") {
-      $("absen-nama").textContent = res.nama || "";
-      $("absen-nip").textContent = res.nip ? "• " + res.nip : "";
-      tampil("absen");
-      mulaiReminder();
-    } else if (res.akunStatus === "pending") {
-      $("pending-nama").textContent = res.nama || emailSaya;
-      tampil("pending");
-    } else {
-      tampil("blokir");
-    }
-  }
-
-  function cekAkun() {
-    if (!Sesi.token()) { tampil("auth"); return; }
-    tampil("loading");
-    API.post({ action: "cekAkun" })
-      .then(function (res) {
-        if (res.status === "success") routeAkun(res);
-        else { Sesi.clear(); tampil("auth"); authPesan(res.message || "Silakan login ulang.", false); }
-      })
-      .catch(function (err) {
-        seksi.loading.textContent = "Gagal memeriksa akun: " + err.message;
-        seksi.loading.className = "status err center";
-      });
-  }
-
-  $("btn-cek-ulang").addEventListener("click", cekAkun);
-  $("btn-cek-ulang2").addEventListener("click", cekAkun);
-  $("btn-logout").addEventListener("click", function (e) {
-    e.preventDefault(); Sesi.clear(); if (reminderTimer) { clearInterval(reminderTimer); reminderTimer = null; }
-    $("footer-akun").classList.add("hidden"); tampil("auth"); authPesan("Anda telah keluar.", true);
-  });
+  $("btn-cek-ulang").addEventListener("click", cekStatus);
+  $("btn-cek-ulang2").addEventListener("click", cekStatus);
 
   /* ---------- Tab Absen / Jurnal ---------- */
   document.querySelectorAll("#seksi-absen .tab").forEach(function (t) {
@@ -180,7 +140,7 @@
           tampilkanPesan("✔ " + res.message, true);
           lokasiAbsen = null; $("keterangan").value = "";
           $("status-lokasi").textContent = "Lokasi belum diambil."; $("status-lokasi").className = "status muted";
-        } else { tampilkanPesan(res.message || "Gagal mencatat absen.", false); if (res.code && res.code !== "disetujui") cekAkun(); }
+        } else { tampilkanPesan(res.message || "Gagal mencatat absen.", false); if (res.code && res.code !== "disetujui") cekStatus(); }
       })
       .catch(function (err) { tampilkanPesan("Gagal mengirim: " + err.message, false); })
       .finally(function () { btn.disabled = false; btn.textContent = "Kirim Absen"; });
@@ -215,7 +175,7 @@
           $("j-preview-wrap").classList.add("hidden"); $("btn-j-foto").textContent = "Ambil / Pilih Foto";
           $("j-status-lokasi").textContent = "Lokasi belum diambil."; $("j-status-lokasi").className = "status muted";
           tandaiJurnalTerisi();
-        } else { tampilkanPesan(res.message || "Gagal menyimpan jurnal.", false); if (res.code && res.code !== "disetujui") cekAkun(); }
+        } else { tampilkanPesan(res.message || "Gagal menyimpan jurnal.", false); if (res.code && res.code !== "disetujui") cekStatus(); }
       })
       .catch(function (err) { tampilkanPesan("Gagal mengirim: " + err.message, false); })
       .finally(function () { btn.disabled = false; btn.textContent = "Simpan Jurnal"; });
@@ -223,7 +183,7 @@
 
   /* ---------- Pengingat jurnal ---------- */
   const INTERVAL_MS = (CONFIG.INTERVAL_JURNAL_MENIT || 120) * 60000;
-  function keyJurnal() { return "pjlp_last_jurnal_" + emailSaya; }
+  function keyJurnal() { return "pjlp_last_jurnal_" + deviceId; }
   function tandaiJurnalTerisi() { localStorage.setItem(keyJurnal(), String(Date.now())); $("reminder-banner").classList.add("hidden"); updateReminderStatus(); }
   function beep() {
     try {
@@ -259,5 +219,5 @@
   }
 
   /* ---------- Mulai ---------- */
-  cekAkun();
+  cekStatus();
 })();

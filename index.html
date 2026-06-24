@@ -26,49 +26,32 @@
         <div class="clock-date">memuat tanggal...</div>
       </div>
 
-      <!-- AUTH: Login / Daftar -->
-      <section id="seksi-auth">
-        <div class="tab-status">
-          <button type="button" class="tab aktif" data-auth="pane-login">Login</button>
-          <button type="button" class="tab" data-auth="pane-daftar">Daftar</button>
-        </div>
+      <section id="seksi-loading" class="status muted center">Memeriksa status perangkat...</section>
 
-        <div id="pane-login">
-          <form id="form-login" autocomplete="on">
-            <label>Email<input type="email" id="l-email" placeholder="email@contoh.com" required></label>
-            <label>Password<input type="password" id="l-password" placeholder="Password" required></label>
-            <button type="submit" id="btn-login" class="submit">Masuk</button>
-          </form>
-        </div>
-
-        <div id="pane-daftar" class="hidden">
-          <form id="form-daftar" autocomplete="off">
-            <label>Nama Lengkap<input type="text" id="d-nama" required></label>
-            <label>Email<input type="email" id="d-email" placeholder="email@contoh.com" required></label>
-            <label>NIP / ID Pegawai <span class="opsional">(opsional)</span><input type="text" id="d-nip"></label>
-            <label>Password <span class="opsional">(min. 6 karakter)</span><input type="password" id="d-password" required></label>
-            <button type="submit" id="btn-daftar" class="submit">Daftar</button>
-          </form>
-        </div>
-        <div id="auth-pesan" class="status"></div>
+      <!-- Belum terdaftar -->
+      <section id="seksi-daftar" class="hidden">
+        <h2 class="seksi-judul">Daftarkan Perangkat</h2>
+        <p class="seksi-info">Perangkat ini belum terdaftar. Daftar dulu, lalu tunggu persetujuan admin. Cukup sekali.</p>
+        <form id="form-daftar" autocomplete="off">
+          <label>Nama Lengkap<input type="text" id="d-nama" placeholder="Nama sesuai kontrak" required></label>
+          <label>NIP / ID Pegawai <span class="opsional">(opsional)</span><input type="text" id="d-nip"></label>
+          <button type="submit" id="btn-daftar" class="submit">Daftarkan Perangkat</button>
+        </form>
       </section>
-
-      <!-- Loading -->
-      <section id="seksi-loading" class="status muted center hidden">Memeriksa akun...</section>
 
       <!-- Pending -->
       <section id="seksi-pending" class="hidden center">
         <div class="big-ikon">⏳</div>
         <h2 class="seksi-judul">Menunggu Persetujuan</h2>
-        <p class="seksi-info">Akun <b id="pending-nama"></b> menunggu disetujui admin.</p>
+        <p class="seksi-info">Perangkat <b id="pending-nama"></b> menunggu disetujui admin.</p>
         <button type="button" id="btn-cek-ulang" class="mini">↻ Periksa Status</button>
       </section>
 
       <!-- Diblokir -->
       <section id="seksi-blokir" class="hidden center">
         <div class="big-ikon">🚫</div>
-        <h2 class="seksi-judul">Akun Diblokir</h2>
-        <p class="seksi-info">Akun ini diblokir/ditolak admin. Hubungi admin.</p>
+        <h2 class="seksi-judul">Perangkat Diblokir</h2>
+        <p class="seksi-info">Perangkat ini diblokir/ditolak admin. Hubungi admin.</p>
         <button type="button" id="btn-cek-ulang2" class="mini">↻ Periksa Status</button>
       </section>
 
@@ -129,7 +112,7 @@
     </main>
 
     <footer class="footer">
-      <p id="footer-akun" class="hidden">Masuk sebagai <span id="footer-email"></span> · <a href="#" id="btn-logout">Keluar</a></p>
+      <p>ID Perangkat: <span id="device-id-singkat" class="mono">-</span></p>
       <p id="reminder-status"></p>
       <p>Pastikan GPS &amp; kamera diizinkan oleh browser.</p>
       <p><a class="link-admin" href="admin.html">Panel Admin</a></p>

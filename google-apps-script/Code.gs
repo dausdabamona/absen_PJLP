@@ -1,35 +1,36 @@
 /* ============================================================
    BACKEND ABSENSI PJLP  —  Google Apps Script
-   Login Email + Password (tanpa OAuth) + persetujuan admin
-   + geofence + jam kerja otomatis + jurnal + rekap per-pengguna
+   Identitas berbasis PERANGKAT (tanpa login) + persetujuan admin
+   + geofence + jam kerja otomatis + jurnal + rekap per-perangkat
+   (admin pakai password untuk melihat semua).
    ------------------------------------------------------------
    PASANG:
    1. Buka Google Sheet > Ekstensi > Apps Script, tempel file ini.
    2. Jalankan fungsi  setup  sekali (izinkan akses).
+      -> membuat tab Absensi, Jurnal, Perangkat + password admin.
+      -> lihat View > Logs untuk password admin awal (admin123).
    3. Deploy > New deployment > Web app
       (Execute as: Me, Who has access: Anyone) > salin URL /exec
       ke js/config.js.
    Ubah kode -> Deploy > Manage deployments > Edit > New version.
    ============================================================ */
 
-const DEFAULT_ADMIN_EMAIL = "dausdaba@polikpsorong.ac.id"; // boleh >1, pisah koma
-
 const TZ = "GMT+9"; // WIT
 const SHEET_ABSEN = "Absensi";
 const SHEET_JURNAL = "Jurnal";
-const SHEET_PEGAWAI = "Pegawai";
+const SHEET_PERANGKAT = "Perangkat";
 const FOLDER_NAME = "Foto Jurnal PJLP";
 
 const HEADER_ABSEN = [
-  "Timestamp", "Email", "Nama", "NIP/ID", "Jenis", "Status Waktu", "Tanggal", "Jam",
+  "Timestamp", "Device ID", "Nama", "NIP/ID", "Jenis", "Status Waktu", "Tanggal", "Jam",
   "Latitude", "Longitude", "Akurasi (m)", "Jarak (m)", "Link Lokasi", "Keterangan"
 ];
 const HEADER_JURNAL = [
-  "Timestamp", "Email", "Nama", "NIP/ID", "Tanggal", "Jam", "Kegiatan",
+  "Timestamp", "Device ID", "Nama", "NIP/ID", "Tanggal", "Jam", "Kegiatan",
   "Foto", "Latitude", "Longitude", "Link Lokasi"
 ];
-const HEADER_PEGAWAI = [
-  "Email", "Nama", "NIP/ID", "PasswordHash", "Status", "Didaftarkan", "Diperbarui"
+const HEADER_PERANGKAT = [
+  "Device ID", "Nama", "NIP/ID", "Status", "Didaftarkan", "Diperbarui"
 ];
 
 const DEFAULT_JAM_MASUK = "07:30";
@@ -41,17 +42,16 @@ const DEFAULT_BUFFER_PULANG = 240;
 function setup() {
   getSheetAbsen();
   getSheetJurnal();
-  getSheetPegawai();
+  getSheetPerangkat();
   const p = props();
+  if (!p.getProperty("ADMIN_PASSWORD")) p.setProperty("ADMIN_PASSWORD", "admin123");
   if (!p.getProperty("JAM_MASUK")) p.setProperty("JAM_MASUK", DEFAULT_JAM_MASUK);
   if (!p.getProperty("JAM_PULANG")) p.setProperty("JAM_PULANG", DEFAULT_JAM_PULANG);
   if (!p.getProperty("BUFFER_MASUK")) p.setProperty("BUFFER_MASUK", String(DEFAULT_BUFFER_MASUK));
   if (!p.getProperty("BUFFER_PULANG")) p.setProperty("BUFFER_PULANG", String(DEFAULT_BUFFER_PULANG));
-  if (!p.getProperty("ADMIN_EMAIL")) p.setProperty("ADMIN_EMAIL", DEFAULT_ADMIN_EMAIL);
   if (!p.getProperty("ABAIKAN_LOKASI")) p.setProperty("ABAIKAN_LOKASI", "true");
-  if (!p.getProperty("SALT")) p.setProperty("SALT", Utilities.getUuid());
-  if (!p.getProperty("SECRET")) p.setProperty("SECRET", Utilities.getUuid());
-  Logger.log("Setup selesai. Admin: " + p.getProperty("ADMIN_EMAIL"));
+  Logger.log("Setup selesai. Password admin awal: " + p.getProperty("ADMIN_PASSWORD"));
+  Logger.log("GANTI password ini lewat panel admin setelah login pertama.");
 }
 
 /* ====================== ROUTING =========================== */
@@ -59,19 +59,17 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     switch (data.action) {
-      case "daftar":           return daftar(data);
-      case "login":            return login(data);
-      case "cekAkun":          return cekAkun(data);
-      case "gantiPassword":    return gantiPassword(data);
-      case "absen":            return absen(data);
-      case "jurnal":           return jurnal(data);
-      case "rekapAbsensi":     return rekapData(data, SHEET_ABSEN);
-      case "rekapJurnal":      return rekapData(data, SHEET_JURNAL);
-      case "adminData":        return adminData(data);
-      case "setStatusPegawai": return setStatusPegawai(data);
-      case "resetPassword":    return resetPassword(data);
-      case "hapusPegawai":     return hapusPegawai(data);
-      case "simpanPengaturan": return simpanPengaturan(data);
+      case "daftarPerangkat":    return daftarPerangkat(data);
+      case "cekPerangkat":       return cekPerangkat(data);
+      case "absen":              return absen(data);
+      case "jurnal":             return jurnal(data);
+      case "rekapAbsensi":       return rekapData(data, SHEET_ABSEN);
+      case "rekapJurnal":        return rekapData(data, SHEET_JURNAL);
+      case "adminLogin":         return adminLogin(data);
+      case "adminData":          return adminData(data);
+      case "setStatusPerangkat": return setStatusPerangkat(data);
+      case "hapusPerangkat":     return hapusPerangkat(data);
+      case "simpanPengaturan":   return simpanPengaturan(data);
       default:
         return jsonOutput({ status: "error", message: "Aksi tidak dikenal: " + data.action });
     }
@@ -82,60 +80,29 @@ function doPost(e) {
 
 function doGet() { return jsonOutput({ status: "success", message: "API Absensi PJLP aktif." }); }
 
-/* ====================== AKUN ============================== */
-function daftar(data) {
-  const email = normEmail(data.email);
-  if (!email || email.indexOf("@") === -1) return jsonOutput({ status: "error", message: "Email tidak valid." });
-  if (!data.nama || !String(data.nama).trim()) return jsonOutput({ status: "error", message: "Nama wajib diisi." });
-  if (!data.password || String(data.password).length < 6) return jsonOutput({ status: "error", message: "Password minimal 6 karakter." });
-  if (cariPegawai(email)) return jsonOutput({ status: "error", message: "Email sudah terdaftar. Silakan login." });
-
+/* ====================== PERANGKAT ======================== */
+function daftarPerangkat(data) {
+  if (!data.deviceId || !data.nama) return jsonOutput({ status: "error", message: "Nama & ID perangkat wajib." });
+  const ada = cariPerangkat(data.deviceId);
+  if (ada) return jsonOutput({ status: "success", deviceStatus: ada.status, message: "Perangkat sudah terdaftar (" + ada.status + ")." });
   const now = new Date();
-  const statusAwal = cekIsAdmin(email) ? "disetujui" : "pending"; // admin langsung aktif
-  getSheetPegawai().appendRow([email, String(data.nama).trim(), data.nip || "", hashPassword(data.password), statusAwal, now, now]);
-  return jsonOutput({ status: "success", akunStatus: statusAwal, message: statusAwal === "disetujui" ? "Akun admin dibuat & aktif. Silakan login." : "Pendaftaran terkirim. Menunggu persetujuan admin." });
+  getSheetPerangkat().appendRow([String(data.deviceId), String(data.nama).trim(), data.nip || "", "pending", now, now]);
+  return jsonOutput({ status: "success", deviceStatus: "pending", message: "Pendaftaran terkirim. Menunggu persetujuan admin." });
 }
 
-function login(data) {
-  const email = normEmail(data.email);
-  const peg = cariPegawai(email);
-  if (!peg || peg.passwordHash !== hashPassword(data.password)) {
-    return jsonOutput({ status: "error", message: "Email atau password salah." });
-  }
+function cekPerangkat(data) {
+  const dev = cariPerangkat(data.deviceId);
   const set = getPengaturan();
-  return jsonOutput({
-    status: "success",
-    token: buatToken(email, peg.passwordHash),
-    nama: peg.nama, nip: peg.nip, akunStatus: peg.status,
-    isAdmin: cekIsAdmin(email),
-    jamMasuk: set.jamMasuk, jamPulang: set.jamPulang
-  });
+  const base = { status: "success", jamMasuk: set.jamMasuk, jamPulang: set.jamPulang };
+  if (!dev) return jsonOutput(Object.assign(base, { terdaftar: false }));
+  return jsonOutput(Object.assign(base, { terdaftar: true, deviceStatus: dev.status, nama: dev.nama, nip: dev.nip }));
 }
 
-function cekAkun(data) {
-  const u = verifikasiToken(data.token);
-  const set = getPengaturan();
-  return jsonOutput({
-    status: "success", email: u.email, nama: u.nama, nip: u.nip,
-    akunStatus: u.status, isAdmin: u.isAdmin,
-    jamMasuk: set.jamMasuk, jamPulang: set.jamPulang
-  });
-}
-
-function gantiPassword(data) {
-  const u = verifikasiToken(data.token);
-  const peg = cariPegawai(u.email);
-  if (peg.passwordHash !== hashPassword(data.passwordLama)) return jsonOutput({ status: "error", message: "Password lama salah." });
-  if (!data.passwordBaru || String(data.passwordBaru).length < 6) return jsonOutput({ status: "error", message: "Password baru minimal 6 karakter." });
-  getSheetPegawai().getRange(peg.rowIndex, 4).setValue(hashPassword(data.passwordBaru));
-  getSheetPegawai().getRange(peg.rowIndex, 7).setValue(new Date());
-  return jsonOutput({ status: "success", token: buatToken(u.email, hashPassword(data.passwordBaru)), message: "Password diperbarui." });
-}
-
-/* ====================== ABSEN ============================= */
+/* ====================== ABSEN ============================ */
 function absen(data) {
-  const u = verifikasiToken(data.token);
-  if (u.status !== "disetujui") return jsonOutput({ status: "error", code: u.status, message: "Akun berstatus '" + u.status + "'. Hubungi admin." });
+  const dev = cariPerangkat(data.deviceId);
+  if (!dev) return jsonOutput({ status: "error", code: "belum_daftar", message: "Perangkat belum terdaftar." });
+  if (dev.status !== "disetujui") return jsonOutput({ status: "error", code: dev.status, message: "Perangkat berstatus '" + dev.status + "'. Hubungi admin." });
 
   const set = getPengaturan();
   let jarak = "";
@@ -153,7 +120,7 @@ function absen(data) {
   const statusWaktu = hitungStatusWaktu(now, jenis, set);
   const linkLok = (data.lat && data.lng) ? "https://maps.google.com/?q=" + data.lat + "," + data.lng : "";
   getSheetAbsen().appendRow([
-    now, u.email, u.nama, u.nip, jenis, statusWaktu,
+    now, dev.deviceId, dev.nama, dev.nip, jenis, statusWaktu,
     fmt(now, "yyyy-MM-dd"), fmt(now, "HH:mm:ss"),
     data.lat || "", data.lng || "", data.akurasi || "",
     jarak === "" ? "" : Math.round(jarak), linkLok, data.keterangan || ""
@@ -164,31 +131,32 @@ function absen(data) {
 
 /* ====================== JURNAL =========================== */
 function jurnal(data) {
-  const u = verifikasiToken(data.token);
-  if (u.status !== "disetujui") return jsonOutput({ status: "error", code: u.status, message: "Akun berstatus '" + u.status + "'. Hubungi admin." });
+  const dev = cariPerangkat(data.deviceId);
+  if (!dev) return jsonOutput({ status: "error", code: "belum_daftar", message: "Perangkat belum terdaftar." });
+  if (dev.status !== "disetujui") return jsonOutput({ status: "error", code: dev.status, message: "Perangkat berstatus '" + dev.status + "'. Hubungi admin." });
   if (!data.kegiatan || !String(data.kegiatan).trim()) return jsonOutput({ status: "error", message: "Deskripsi kegiatan wajib diisi." });
   if (!data.foto) return jsonOutput({ status: "error", message: "Foto kegiatan wajib diambil." });
 
   const now = new Date();
-  const fotoUrl = simpanFoto(data.foto, u.nama, "jurnal", now);
+  const fotoUrl = simpanFoto(data.foto, dev.nama, "jurnal", now);
   const linkLok = (data.lat && data.lng) ? "https://maps.google.com/?q=" + data.lat + "," + data.lng : "";
   getSheetJurnal().appendRow([
-    now, u.email, u.nama, u.nip, fmt(now, "yyyy-MM-dd"), fmt(now, "HH:mm:ss"),
+    now, dev.deviceId, dev.nama, dev.nip, fmt(now, "yyyy-MM-dd"), fmt(now, "HH:mm:ss"),
     String(data.kegiatan).trim(), fotoUrl, data.lat || "", data.lng || "", linkLok
   ]);
   return jsonOutput({ status: "success", message: "Jurnal kegiatan berhasil disimpan." });
 }
 
-/* ====================== REKAP ============================ */
+/* ====================== REKAP =========================== */
 function rekapData(data, namaSheet) {
-  const u = verifikasiToken(data.token);
+  const isAdmin = data.adminPassword && data.adminPassword === props().getProperty("ADMIN_PASSWORD");
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(namaSheet);
-  if (!sheet) return jsonOutput({ status: "success", data: [], isAdmin: u.isAdmin });
+  if (!sheet) return jsonOutput({ status: "success", data: [], isAdmin: !!isAdmin });
   const values = sheet.getDataRange().getValues();
-  if (values.length < 2) return jsonOutput({ status: "success", data: [], isAdmin: u.isAdmin });
+  if (values.length < 2) return jsonOutput({ status: "success", data: [], isAdmin: !!isAdmin });
   const headers = values.shift();
-  const idxEmail = headers.indexOf("Email");
-  let rows = u.isAdmin ? values : values.filter(function (r) { return String(r[idxEmail]).toLowerCase() === u.email; });
+  const idxDev = headers.indexOf("Device ID");
+  let rows = isAdmin ? values : values.filter(function (r) { return String(r[idxDev]) === String(data.deviceId); });
   const out = rows.map(function (row) {
     const obj = {};
     headers.forEach(function (h, i) {
@@ -198,50 +166,40 @@ function rekapData(data, namaSheet) {
     });
     return obj;
   });
-  return jsonOutput({ status: "success", data: out, isAdmin: u.isAdmin });
+  return jsonOutput({ status: "success", data: out, isAdmin: !!isAdmin });
 }
 
 /* ====================== ADMIN =========================== */
-function adminData(data) {
-  const u = verifikasiToken(data.token);
-  if (!u.isAdmin) return jsonOutput({ status: "error", message: "Anda bukan admin." });
-  return jsonOutput({ status: "success", pegawai: listPegawai(), pengaturan: getPengaturanPublic() });
+function adminLogin(data) {
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  return jsonOutput({ status: "success", message: "Login berhasil." });
 }
 
-function setStatusPegawai(data) {
-  const u = verifikasiToken(data.token);
-  if (!u.isAdmin) return jsonOutput({ status: "error", message: "Anda bukan admin." });
+function adminData(data) {
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  return jsonOutput({ status: "success", perangkat: listPerangkat(), pengaturan: getPengaturanPublic() });
+}
+
+function setStatusPerangkat(data) {
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
   if (["pending", "disetujui", "diblokir"].indexOf(data.statusBaru) === -1) return jsonOutput({ status: "error", message: "Status tidak valid." });
-  const peg = cariPegawai(data.email);
-  if (!peg) return jsonOutput({ status: "error", message: "Pegawai tidak ditemukan." });
-  getSheetPegawai().getRange(peg.rowIndex, 5).setValue(data.statusBaru);
-  getSheetPegawai().getRange(peg.rowIndex, 7).setValue(new Date());
+  const dev = cariPerangkat(data.deviceId);
+  if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
+  getSheetPerangkat().getRange(dev.rowIndex, 4).setValue(data.statusBaru);
+  getSheetPerangkat().getRange(dev.rowIndex, 6).setValue(new Date());
   return jsonOutput({ status: "success", message: "Status diperbarui." });
 }
 
-function resetPassword(data) {
-  const u = verifikasiToken(data.token);
-  if (!u.isAdmin) return jsonOutput({ status: "error", message: "Anda bukan admin." });
-  if (!data.passwordBaru || String(data.passwordBaru).length < 6) return jsonOutput({ status: "error", message: "Password baru minimal 6 karakter." });
-  const peg = cariPegawai(data.email);
-  if (!peg) return jsonOutput({ status: "error", message: "Pegawai tidak ditemukan." });
-  getSheetPegawai().getRange(peg.rowIndex, 4).setValue(hashPassword(data.passwordBaru));
-  getSheetPegawai().getRange(peg.rowIndex, 7).setValue(new Date());
-  return jsonOutput({ status: "success", message: "Password " + data.email + " direset." });
-}
-
-function hapusPegawai(data) {
-  const u = verifikasiToken(data.token);
-  if (!u.isAdmin) return jsonOutput({ status: "error", message: "Anda bukan admin." });
-  const peg = cariPegawai(data.email);
-  if (!peg) return jsonOutput({ status: "error", message: "Pegawai tidak ditemukan." });
-  getSheetPegawai().deleteRow(peg.rowIndex);
-  return jsonOutput({ status: "success", message: "Pegawai dihapus." });
+function hapusPerangkat(data) {
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  const dev = cariPerangkat(data.deviceId);
+  if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
+  getSheetPerangkat().deleteRow(dev.rowIndex);
+  return jsonOutput({ status: "success", message: "Perangkat dihapus." });
 }
 
 function simpanPengaturan(data) {
-  const u = verifikasiToken(data.token);
-  if (!u.isAdmin) return jsonOutput({ status: "error", message: "Anda bukan admin." });
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
   const p = props();
   if (data.lat !== undefined && data.lat !== "") p.setProperty("KAMPUS_LAT", String(data.lat));
   if (data.lng !== undefined && data.lng !== "") p.setProperty("KAMPUS_LNG", String(data.lng));
@@ -252,44 +210,16 @@ function simpanPengaturan(data) {
   if (data.bufferMasuk !== undefined && data.bufferMasuk !== "") p.setProperty("BUFFER_MASUK", String(parseInt(data.bufferMasuk, 10) || 0));
   if (data.bufferPulang !== undefined && data.bufferPulang !== "") p.setProperty("BUFFER_PULANG", String(parseInt(data.bufferPulang, 10) || 0));
   if (data.abaikanLokasi !== undefined) p.setProperty("ABAIKAN_LOKASI", data.abaikanLokasi ? "true" : "false");
-  if (data.adminEmail) p.setProperty("ADMIN_EMAIL", String(data.adminEmail).toLowerCase());
+  if (data.passwordBaru) {
+    if (String(data.passwordBaru).length < 6) return jsonOutput({ status: "error", message: "Password baru minimal 6 karakter." });
+    p.setProperty("ADMIN_PASSWORD", String(data.passwordBaru));
+  }
   return jsonOutput({ status: "success", message: "Pengaturan disimpan." });
 }
 
-/* ====================== AUTH HELPER ===================== */
-function normEmail(e) { return String(e || "").trim().toLowerCase(); }
-
-function hashPassword(pw) { return sha256Hex(String(pw) + "::" + props().getProperty("SALT")); }
-
-function buatToken(email, passwordHash) { return email + "|" + hmacHex(email + "|" + passwordHash); }
-
-function verifikasiToken(token) {
-  if (!token) throw new Error("Belum login. Silakan login.");
-  const idx = String(token).indexOf("|");
-  if (idx === -1) throw new Error("Sesi tidak valid, login ulang.");
-  const email = normEmail(token.substring(0, idx));
-  const sig = token.substring(idx + 1);
-  const peg = cariPegawai(email);
-  if (!peg) throw new Error("Akun tidak ditemukan, login ulang.");
-  if (sig !== hmacHex(email + "|" + peg.passwordHash)) throw new Error("Sesi tidak valid (password mungkin berubah), login ulang.");
-  return { email: email, nama: peg.nama, nip: peg.nip, status: peg.status, isAdmin: cekIsAdmin(email), rowIndex: peg.rowIndex };
-}
-
-function cekIsAdmin(email) {
-  const admins = (props().getProperty("ADMIN_EMAIL") || DEFAULT_ADMIN_EMAIL).toLowerCase().split(",").map(function (s) { return s.trim(); });
-  return admins.indexOf(normEmail(email)) !== -1;
-}
-
-function sha256Hex(s) {
-  const raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8);
-  return bytesToHex(raw);
-}
-function hmacHex(msg) {
-  const raw = Utilities.computeHmacSha256Signature(msg, props().getProperty("SECRET"));
-  return bytesToHex(raw);
-}
-function bytesToHex(bytes) {
-  return bytes.map(function (b) { return ("0" + (b & 0xFF).toString(16)).slice(-2); }).join("");
+function cekAdmin(data) {
+  const pw = props().getProperty("ADMIN_PASSWORD");
+  return pw && data.password && String(data.password) === pw;
 }
 
 /* ====================== JAM KERJA ======================= */
@@ -326,8 +256,7 @@ function getPengaturan() {
     jamPulang: p.getProperty("JAM_PULANG") || DEFAULT_JAM_PULANG,
     bufferMasuk: parseInt(p.getProperty("BUFFER_MASUK") || String(DEFAULT_BUFFER_MASUK), 10),
     bufferPulang: parseInt(p.getProperty("BUFFER_PULANG") || String(DEFAULT_BUFFER_PULANG), 10),
-    abaikanLokasi: (p.getProperty("ABAIKAN_LOKASI") || "true") === "true",
-    adminEmail: p.getProperty("ADMIN_EMAIL") || DEFAULT_ADMIN_EMAIL
+    abaikanLokasi: (p.getProperty("ABAIKAN_LOKASI") || "true") === "true"
   };
 }
 function getPengaturanPublic() {
@@ -335,30 +264,30 @@ function getPengaturanPublic() {
   return {
     lat: isNaN(s.lat) ? "" : s.lat, lng: isNaN(s.lng) ? "" : s.lng, radius: s.radius || "",
     namaInstansi: s.namaInstansi, jamMasuk: s.jamMasuk, jamPulang: s.jamPulang,
-    bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi, adminEmail: s.adminEmail
+    bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi
   };
 }
 
-function getDataPegawai() {
-  const values = getSheetPegawai().getDataRange().getValues();
+function getDataPerangkat() {
+  const values = getSheetPerangkat().getDataRange().getValues();
   values.shift();
   return values.map(function (r, i) {
-    return { rowIndex: i + 2, email: String(r[0]).toLowerCase(), nama: r[1], nip: r[2], passwordHash: r[3], status: r[4], didaftarkan: r[5] };
+    return { rowIndex: i + 2, deviceId: String(r[0]), nama: r[1], nip: r[2], status: r[3], didaftarkan: r[4] };
   });
 }
-function cariPegawai(email) {
-  const e = normEmail(email); if (!e) return null;
-  return getDataPegawai().filter(function (d) { return d.email === e; })[0] || null;
+function cariPerangkat(deviceId) {
+  if (!deviceId) return null;
+  return getDataPerangkat().filter(function (d) { return d.deviceId === String(deviceId); })[0] || null;
 }
-function listPegawai() {
-  return getDataPegawai().map(function (d) {
-    return { email: d.email, nama: d.nama, nip: d.nip, status: d.status, didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
+function listPerangkat() {
+  return getDataPerangkat().map(function (d) {
+    return { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
   });
 }
 
 function getSheetAbsen() { return getOrCreateSheet(SHEET_ABSEN, HEADER_ABSEN); }
 function getSheetJurnal() { return getOrCreateSheet(SHEET_JURNAL, HEADER_JURNAL); }
-function getSheetPegawai() { return getOrCreateSheet(SHEET_PEGAWAI, HEADER_PEGAWAI); }
+function getSheetPerangkat() { return getOrCreateSheet(SHEET_PERANGKAT, HEADER_PERANGKAT); }
 function getOrCreateSheet(nama, header) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(nama);

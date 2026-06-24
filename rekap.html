@@ -20,21 +20,9 @@
       <a class="link-rekap" href="index.html">&larr; Absen</a>
     </header>
 
-    <!-- Login -->
-    <main id="seksi-login" class="card">
-      <h2 class="seksi-judul">Masuk untuk Melihat Rekap</h2>
-      <p class="seksi-info">Anda hanya melihat data sendiri. Admin melihat seluruh data.</p>
-      <form id="form-login" autocomplete="on">
-        <label>Email<input type="email" id="l-email" required></label>
-        <label>Password<input type="password" id="l-password" required></label>
-        <button type="submit" id="btn-login" class="submit">Masuk</button>
-      </form>
-      <div id="login-pesan" class="status err"></div>
-    </main>
-
-    <!-- Konten -->
-    <main id="seksi-konten" class="card hidden">
-      <div id="badge-admin" class="info-jam hidden">👑 Mode admin: menampilkan data semua pegawai.</div>
+    <main class="card">
+      <div id="badge-admin" class="info-jam hidden">👑 Mode admin: menampilkan data semua perangkat.</div>
+      <p class="seksi-info">Secara default menampilkan data perangkat ini saja. Admin bisa lihat semua dengan password.</p>
 
       <div class="tab-status">
         <button class="tab aktif" data-mode="absensi">Absensi</button>
@@ -45,6 +33,7 @@
         <label>Cari Nama<input type="text" id="f-nama" placeholder="Ketik nama..."></label>
         <label>Dari Tanggal<input type="date" id="f-dari"></label>
         <label>Sampai Tanggal<input type="date" id="f-sampai"></label>
+        <label>Password Admin <span class="opsional">(untuk lihat semua)</span><input type="password" id="f-admin"></label>
         <div class="filter-actions">
           <button type="button" id="btn-refresh" class="mini">↻ Muat Ulang</button>
           <button type="button" id="btn-ekspor" class="mini primary">⬇ Ekspor CSV</button>

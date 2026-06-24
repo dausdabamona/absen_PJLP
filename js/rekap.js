@@ -1,6 +1,6 @@
 /* ============================================================
-   Rekap (rekap.html) — login Google; data difilter server-side
-   (pengguna lihat miliknya; admin lihat semua).
+   Rekap (rekap.html) — data perangkat sendiri; admin (password)
+   bisa melihat semua. Filter server-side per Device ID.
    ============================================================ */
 
 (function () {
@@ -17,7 +17,6 @@
       { judul: "Tanggal", get: function (r) { return tgl(r["Tanggal"]); } },
       { judul: "Jam", get: function (r) { return f(r, ["Jam"]); } },
       { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
-      { judul: "Email", get: function (r) { return f(r, ["Email"]); } },
       { judul: "Jenis", get: function (r) { return badge(f(r, ["Jenis"])); }, raw: function (r) { return f(r, ["Jenis"]); } },
       { judul: "Status Waktu", get: function (r) { return f(r, ["Status Waktu"]); } },
       { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } },
@@ -27,7 +26,6 @@
       { judul: "Tanggal", get: function (r) { return tgl(r["Tanggal"]); } },
       { judul: "Jam", get: function (r) { return f(r, ["Jam"]); } },
       { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
-      { judul: "Email", get: function (r) { return f(r, ["Email"]); } },
       { judul: "Kegiatan", get: function (r) { return f(r, ["Kegiatan"]); } },
       { judul: "Foto", get: function (r) { return link(f(r, ["Foto"]), "Lihat"); }, raw: function (r) { return f(r, ["Foto"]); } },
       { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } }
@@ -67,16 +65,15 @@
   }
 
   function muatData() {
+    if (API.belumDikonfigurasi()) { info.textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; info.className = "status err"; return; }
     info.textContent = "Memuat data..."; info.className = "status muted";
-    API.post({ action: mode === "jurnal" ? "rekapJurnal" : "rekapAbsensi" })
+    API.post({ action: mode === "jurnal" ? "rekapJurnal" : "rekapAbsensi", adminPassword: $("f-admin").value })
       .then(function (res) {
         if (res.status === "success") {
           $("badge-admin").classList.toggle("hidden", !res.isAdmin);
           semuaData = res.data || [];
           terapkanFilter();
-        } else {
-          info.textContent = "Gagal memuat: " + (res.message || "kesalahan"); info.className = "status err";
-        }
+        } else { info.textContent = "Gagal memuat: " + (res.message || "kesalahan"); info.className = "status err"; }
       })
       .catch(function (err) { info.textContent = "Gagal memuat data: " + err.message; info.className = "status err"; });
   }
@@ -90,8 +87,7 @@
     const csv = [header].concat(baris).map(function (r) { return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(","); }).join("\r\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "rekap-" + mode + "-pjlp.csv"; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = "rekap-" + mode + "-pjlp.csv"; a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -106,28 +102,7 @@
   $("f-nama").addEventListener("input", terapkanFilter);
   $("f-dari").addEventListener("change", terapkanFilter);
   $("f-sampai").addEventListener("change", terapkanFilter);
+  $("f-admin").addEventListener("change", muatData);
 
-  function masukKonten() {
-    $("seksi-login").classList.add("hidden");
-    $("seksi-konten").classList.remove("hidden");
-    muatData();
-  }
-
-  /* ---------- Login ---------- */
-  $("form-login").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    if (API.belumDikonfigurasi()) { $("login-pesan").textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; return; }
-    const btn = $("btn-login"); btn.disabled = true; btn.textContent = "Masuk...";
-    $("login-pesan").textContent = "";
-    API.post({ action: "login", token: "", email: $("l-email").value.trim(), password: $("l-password").value })
-      .then(function (res) {
-        if (res.status === "success") { Sesi.set(res.token); masukKonten(); }
-        else $("login-pesan").textContent = res.message || "Gagal login.";
-      })
-      .catch(function (err) { $("login-pesan").textContent = "Gagal: " + err.message; })
-      .finally(function () { btn.disabled = false; btn.textContent = "Masuk"; });
-  });
-
-  // auto bila sudah login
-  if (Sesi.token() && !API.belumDikonfigurasi()) { masukKonten(); }
+  muatData();
 })();
