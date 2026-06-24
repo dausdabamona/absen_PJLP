@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Absensi PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🕓</span>
+        <div>
+          <h1>Absensi PJLP</h1>
+          <p class="subtitle">Penyedia Jasa Lainnya Perorangan</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="rekap.html">Rekap &rarr;</a>
+    </header>
+
+    <main class="card">
+      <div id="jam" class="clock">
+        <div class="clock-time">--:--:--</div>
+        <div class="clock-date">memuat tanggal...</div>
+      </div>
+
+      <form id="form-absen" autocomplete="off">
+        <label>
+          Nama Lengkap
+          <input type="text" id="nama" name="nama" placeholder="Nama sesuai kontrak" required>
+        </label>
+
+        <label>
+          NIP / ID Pegawai <span class="opsional">(opsional)</span>
+          <input type="text" id="nip" name="nip" placeholder="Nomor induk / ID">
+        </label>
+
+        <label>
+          Jenis Absen
+          <div class="segmented">
+            <input type="radio" id="masuk" name="jenis" value="Masuk" checked>
+            <label for="masuk">Masuk</label>
+            <input type="radio" id="pulang" name="jenis" value="Pulang">
+            <label for="pulang">Pulang</label>
+          </div>
+        </label>
+
+        <div class="field-group">
+          <div class="field-head">
+            <span>📍 Lokasi GPS</span>
+            <button type="button" id="btn-lokasi" class="mini">Ambil Lokasi</button>
+          </div>
+          <div id="status-lokasi" class="status muted">Lokasi belum diambil.</div>
+        </div>
+
+        <div class="field-group">
+          <div class="field-head">
+            <span>📷 Foto / Selfie</span>
+          </div>
+          <input type="file" id="foto" accept="image/*" capture="user" hidden>
+          <button type="button" id="btn-foto" class="photo-btn">Ambil / Pilih Foto</button>
+          <div id="preview-wrap" class="preview hidden">
+            <img id="preview" alt="Pratinjau foto">
+          </div>
+        </div>
+
+        <label>
+          Keterangan <span class="opsional">(opsional)</span>
+          <textarea id="keterangan" name="keterangan" rows="2" placeholder="Mis. dinas luar, izin sebentar, dll."></textarea>
+        </label>
+
+        <button type="submit" id="btn-submit" class="submit">Kirim Absen</button>
+      </form>
+
+      <div id="pesan" class="pesan hidden"></div>
+    </main>
+
+    <footer class="footer">
+      <p>Pastikan GPS &amp; kamera diizinkan oleh browser.</p>
+    </footer>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
