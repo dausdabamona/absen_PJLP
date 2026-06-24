@@ -6,6 +6,7 @@
   <title>Absensi PJLP</title>
   <meta name="theme-color" content="#0d6efd">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app">
@@ -26,43 +27,45 @@
         <div class="clock-date">memuat tanggal...</div>
       </div>
 
-      <!-- Loading awal -->
-      <section id="seksi-loading" class="status muted center">Memeriksa status perangkat...</section>
+      <!-- Login Google -->
+      <section id="seksi-login" class="center">
+        <h2 class="seksi-judul">Masuk untuk Absen</h2>
+        <p class="seksi-info">Gunakan akun Google Anda untuk masuk, lalu daftarkan diri.</p>
+        <div id="g-signin" class="gbtn-wrap"></div>
+        <div id="login-pesan" class="status err"></div>
+      </section>
 
-      <!-- Belum terdaftar: form pendaftaran -->
+      <!-- Loading -->
+      <section id="seksi-loading" class="status muted center hidden">Memeriksa akun...</section>
+
+      <!-- Daftar -->
       <section id="seksi-daftar" class="hidden">
-        <h2 class="seksi-judul">Daftarkan Perangkat</h2>
-        <p class="seksi-info">Perangkat ini belum terdaftar. Daftar dulu, lalu tunggu persetujuan admin. Cukup sekali.</p>
+        <h2 class="seksi-judul">Lengkapi Pendaftaran</h2>
+        <p class="seksi-info">Akun <b id="daftar-email"></b> belum terdaftar. Lengkapi data lalu tunggu persetujuan admin.</p>
         <form id="form-daftar" autocomplete="off">
-          <label>
-            Nama Lengkap
-            <input type="text" id="d-nama" placeholder="Nama sesuai kontrak" required>
-          </label>
-          <label>
-            NIP / ID Pegawai <span class="opsional">(opsional)</span>
-            <input type="text" id="d-nip" placeholder="Nomor induk / ID">
-          </label>
-          <button type="submit" id="btn-daftar" class="submit">Daftarkan Perangkat</button>
+          <label>Nama Lengkap<input type="text" id="d-nama" required></label>
+          <label>NIP / ID Pegawai <span class="opsional">(opsional)</span><input type="text" id="d-nip"></label>
+          <button type="submit" id="btn-daftar" class="submit">Daftarkan Diri</button>
         </form>
       </section>
 
-      <!-- Menunggu persetujuan -->
+      <!-- Pending -->
       <section id="seksi-pending" class="hidden center">
         <div class="big-ikon">⏳</div>
         <h2 class="seksi-judul">Menunggu Persetujuan</h2>
-        <p class="seksi-info">Perangkat <b id="pending-nama"></b> sudah terdaftar dan sedang menunggu disetujui admin.</p>
+        <p class="seksi-info">Akun <b id="pending-nama"></b> menunggu disetujui admin.</p>
         <button type="button" id="btn-cek-ulang" class="mini">↻ Periksa Status</button>
       </section>
 
       <!-- Diblokir -->
       <section id="seksi-blokir" class="hidden center">
         <div class="big-ikon">🚫</div>
-        <h2 class="seksi-judul">Perangkat Diblokir</h2>
-        <p class="seksi-info">Perangkat ini diblokir/ditolak admin. Silakan hubungi admin.</p>
+        <h2 class="seksi-judul">Akun Diblokir</h2>
+        <p class="seksi-info">Akun ini diblokir/ditolak admin. Hubungi admin.</p>
         <button type="button" id="btn-cek-ulang2" class="mini">↻ Periksa Status</button>
       </section>
 
-      <!-- Disetujui: tab Absen / Jurnal -->
+      <!-- Disetujui -->
       <section id="seksi-absen" class="hidden">
         <div class="identitas">
           <span>👤 <b id="absen-nama"></b></span>
@@ -74,7 +77,7 @@
           <button type="button" class="tab" data-pane="pane-jurnal">Jurnal Kegiatan</button>
         </div>
 
-        <!-- Pane: Absen (tanpa foto, jenis otomatis) -->
+        <!-- Absen -->
         <div id="pane-absen">
           <div class="info-jam" id="info-jam-kerja">Jam kerja: -</div>
           <form id="form-absen" autocomplete="off">
@@ -85,33 +88,26 @@
               </div>
               <div id="status-lokasi" class="status muted">Lokasi belum diambil.</div>
             </div>
-
-            <label>
-              Keterangan <span class="opsional">(opsional)</span>
+            <label>Keterangan <span class="opsional">(opsional)</span>
               <textarea id="keterangan" rows="2" placeholder="Mis. dinas luar, izin sebentar, dll."></textarea>
             </label>
-
             <button type="submit" id="btn-submit" class="submit">Kirim Absen</button>
           </form>
         </div>
 
-        <!-- Pane: Jurnal Kegiatan (wajib foto + deskripsi) -->
+        <!-- Jurnal -->
         <div id="pane-jurnal" class="hidden">
+          <div id="reminder-banner" class="reminder hidden"></div>
           <form id="form-jurnal" autocomplete="off">
-            <label>
-              Deskripsi Kegiatan
+            <label>Deskripsi Kegiatan
               <textarea id="j-kegiatan" rows="3" placeholder="Tuliskan kegiatan yang dilakukan..." required></textarea>
             </label>
-
             <div class="field-group">
               <div class="field-head"><span>📷 Foto Kegiatan</span></div>
               <input type="file" id="j-foto" accept="image/*" capture="environment" hidden>
               <button type="button" id="btn-j-foto" class="photo-btn">Ambil / Pilih Foto</button>
-              <div id="j-preview-wrap" class="preview hidden">
-                <img id="j-preview" alt="Pratinjau foto kegiatan">
-              </div>
+              <div id="j-preview-wrap" class="preview hidden"><img id="j-preview" alt="Pratinjau"></div>
             </div>
-
             <div class="field-group">
               <div class="field-head">
                 <span>📍 Lokasi <span class="opsional">(opsional)</span></span>
@@ -119,7 +115,6 @@
               </div>
               <div id="j-status-lokasi" class="status muted">Lokasi belum diambil.</div>
             </div>
-
             <button type="submit" id="btn-j-submit" class="submit">Simpan Jurnal</button>
           </form>
         </div>
@@ -129,7 +124,8 @@
     </main>
 
     <footer class="footer">
-      <p>ID Perangkat: <span id="device-id-singkat" class="mono">-</span></p>
+      <p id="footer-akun" class="hidden">Masuk sebagai <span id="footer-email"></span> · <a href="#" id="btn-logout">Keluar</a></p>
+      <p id="reminder-status"></p>
       <p>Pastikan GPS &amp; kamera diizinkan oleh browser.</p>
       <p><a class="link-admin" href="admin.html">Panel Admin</a></p>
     </footer>

@@ -6,6 +6,7 @@
   <title>Panel Admin — Absensi PJLP</title>
   <meta name="theme-color" content="#0d6efd">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app wide">
@@ -21,37 +22,25 @@
     </header>
 
     <!-- Login -->
-    <main id="seksi-login" class="card">
+    <main id="seksi-login" class="card center">
       <h2 class="seksi-judul">Masuk Admin</h2>
-      <form id="form-login" autocomplete="off">
-        <label>
-          Password Admin
-          <input type="password" id="password" placeholder="Masukkan password" required>
-        </label>
-        <button type="submit" id="btn-login" class="submit">Masuk</button>
-      </form>
+      <p class="seksi-info">Masuk dengan akun Google admin.</p>
+      <div id="g-signin" class="gbtn-wrap"></div>
       <div id="login-pesan" class="status err"></div>
     </main>
 
     <!-- Dashboard -->
     <main id="seksi-dashboard" class="hidden">
-      <!-- Pengaturan lokasi -->
       <div class="card" style="margin-bottom:16px;">
         <h2 class="seksi-judul">📍 Lokasi & Pengaturan</h2>
-        <p class="seksi-info">Absen hanya diterima bila berada dalam radius titik di bawah ini.</p>
+        <p class="seksi-info">Absen hanya diterima dalam radius titik di bawah ini (kecuali Mode Uji Coba aktif).</p>
         <form id="form-pengaturan" autocomplete="off">
-          <label>
-            Nama Instansi
-            <input type="text" id="s-instansi" placeholder="Politeknik Kelautan dan Perikanan Sorong">
-          </label>
+          <label>Nama Instansi<input type="text" id="s-instansi" placeholder="Politeknik Kelautan dan Perikanan Sorong"></label>
           <div class="grid2">
             <label>Latitude<input type="text" id="s-lat" placeholder="-0.8762"></label>
             <label>Longitude<input type="text" id="s-lng" placeholder="131.2558"></label>
           </div>
-          <label>
-            Radius (meter)
-            <input type="number" id="s-radius" placeholder="200" min="20">
-          </label>
+          <label>Radius (meter)<input type="number" id="s-radius" placeholder="200" min="20"></label>
           <button type="button" id="btn-lokasi-saya" class="mini">📡 Gunakan Lokasi Saya Sekarang</button>
           <div id="lokasi-saya-info" class="status muted"></div>
 
@@ -59,10 +48,9 @@
             <span>🧪 Mode Uji Coba (abaikan lokasi)</span>
             <input type="checkbox" id="s-abaikan">
           </label>
-          <p class="seksi-info">Saat aktif, absen diterima dari mana saja (untuk uji coba). Matikan saat siap produksi agar geofence kampus berlaku.</p>
+          <p class="seksi-info">Aktif = absen diterima dari mana saja (uji coba). Matikan untuk produksi.</p>
 
           <hr class="garis">
-
           <h3 class="seksi-judul">🕒 Jam Kerja</h3>
           <div class="grid2">
             <label>Jam Masuk<input type="time" id="s-jam-masuk"></label>
@@ -72,12 +60,10 @@
             <label>Toleransi Masuk (menit)<input type="number" id="s-buffer-masuk" min="0" placeholder="60"></label>
             <label>Toleransi Pulang (menit)<input type="number" id="s-buffer-pulang" min="0" placeholder="240"></label>
           </div>
-          <p class="seksi-info">Toleransi masuk: batas keterlambatan (mis. 60 = boleh sampai 1 jam setelah jam masuk). Toleransi pulang: boleh pulang lebih awal (mis. 240 = sampai 4 jam sebelum jam pulang).</p>
 
           <hr class="garis">
-          <label>
-            Ganti Password Admin <span class="opsional">(kosongkan jika tidak diubah)</span>
-            <input type="password" id="s-password" placeholder="Password baru (min. 6 karakter)">
+          <label>Email Admin <span class="opsional">(pisahkan koma untuk lebih dari satu)</span>
+            <input type="text" id="s-admin-email" placeholder="dausdaba@polikpsorong.ac.id">
           </label>
 
           <button type="submit" id="btn-simpan" class="submit">Simpan Pengaturan</button>
@@ -85,13 +71,10 @@
         <div id="pengaturan-pesan" class="pesan hidden"></div>
       </div>
 
-      <!-- Daftar perangkat -->
       <div class="card">
         <div class="filterbar">
-          <h2 class="seksi-judul" style="flex:1;">📱 Perangkat Terdaftar</h2>
-          <div class="filter-actions">
-            <button type="button" id="btn-refresh" class="mini">↻ Muat Ulang</button>
-          </div>
+          <h2 class="seksi-judul" style="flex:1;">👥 Pegawai Terdaftar</h2>
+          <div class="filter-actions"><button type="button" id="btn-refresh" class="mini">↻ Muat Ulang</button></div>
         </div>
         <div class="tab-status">
           <button class="tab aktif" data-filter="semua">Semua</button>
@@ -99,20 +82,11 @@
           <button class="tab" data-filter="disetujui">Disetujui</button>
           <button class="tab" data-filter="diblokir">Diblokir</button>
         </div>
-        <div id="perangkat-info" class="status muted">Memuat...</div>
+        <div id="pegawai-info" class="status muted">Memuat...</div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Nama</th>
-                <th>NIP/ID</th>
-                <th>Status</th>
-                <th>Didaftarkan</th>
-                <th>Device ID</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="perangkat-body"></tbody>
+            <thead><tr><th>Nama</th><th>Email</th><th>NIP/ID</th><th>Status</th><th>Didaftarkan</th><th>Aksi</th></tr></thead>
+            <tbody id="pegawai-body"></tbody>
           </table>
         </div>
       </div>

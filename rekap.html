@@ -6,6 +6,7 @@
   <title>Rekap Absensi PJLP</title>
   <meta name="theme-color" content="#0d6efd">
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app wide">
@@ -20,25 +21,27 @@
       <a class="link-rekap" href="index.html">&larr; Absen</a>
     </header>
 
-    <main class="card">
+    <!-- Login -->
+    <main id="seksi-login" class="card center">
+      <h2 class="seksi-judul">Masuk untuk Melihat Rekap</h2>
+      <p class="seksi-info">Anda hanya melihat data sendiri. Admin melihat seluruh data.</p>
+      <div id="g-signin" class="gbtn-wrap"></div>
+      <div id="login-pesan" class="status err"></div>
+    </main>
+
+    <!-- Konten -->
+    <main id="seksi-konten" class="card hidden">
+      <div id="badge-admin" class="info-jam hidden">👑 Mode admin: menampilkan data semua pegawai.</div>
+
       <div class="tab-status">
         <button class="tab aktif" data-mode="absensi">Absensi</button>
         <button class="tab" data-mode="jurnal">Jurnal Kegiatan</button>
       </div>
 
       <div class="filterbar">
-        <label>
-          Cari Nama
-          <input type="text" id="f-nama" placeholder="Ketik nama...">
-        </label>
-        <label>
-          Dari Tanggal
-          <input type="date" id="f-dari">
-        </label>
-        <label>
-          Sampai Tanggal
-          <input type="date" id="f-sampai">
-        </label>
+        <label>Cari Nama<input type="text" id="f-nama" placeholder="Ketik nama..."></label>
+        <label>Dari Tanggal<input type="date" id="f-dari"></label>
+        <label>Sampai Tanggal<input type="date" id="f-sampai"></label>
         <div class="filter-actions">
           <button type="button" id="btn-refresh" class="mini">↻ Muat Ulang</button>
           <button type="button" id="btn-ekspor" class="mini primary">⬇ Ekspor CSV</button>
@@ -46,7 +49,6 @@
       </div>
 
       <div id="info" class="status muted">Memuat data...</div>
-
       <div class="table-wrap">
         <table id="tabel">
           <thead><tr id="thead-row"></tr></thead>
