@@ -9,7 +9,7 @@
 
 const CONFIG = {
   // Tempel URL Web App Google Apps Script Anda di sini:
-  APPS_SCRIPT_URL: "GANTI_DENGAN_URL_WEB_APP_ANDA",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwLoZ2oZHcFjThApk_QcRWiaAaWYDf61IyDaIMcyVuND_oy_-sY6QOfEwoyWk3J--7J/exec",
 
   // Zona waktu untuk tampilan jam (WIB=7, WITA=8, WIT=9)
   OFFSET_JAM: 9,
