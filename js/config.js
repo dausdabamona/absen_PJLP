@@ -1,26 +1,49 @@
 /* ============================================================
    KONFIGURASI APLIKASI ABSENSI PJLP
    ------------------------------------------------------------
-   1. Buat Google Apps Script (lihat folder google-apps-script/
-      dan baca README.md untuk langkah lengkapnya).
-   2. Setelah deploy sebagai "Web app", salin URL-nya
-      (berakhiran /exec) dan tempel di APPS_SCRIPT_URL di bawah.
+   Hanya satu hal yang perlu Anda isi: URL Web App Apps Script.
+   Pengaturan lokasi kampus, radius, & password admin sekarang
+   diatur dari PANEL ADMIN (admin.html), bukan di sini.
    ============================================================ */
 
 const CONFIG = {
-  // Tempel URL Web App Google Apps Script Anda di sini:
+  // URL Web App Google Apps Script Anda (berakhiran /exec):
   APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwLoZ2oZHcFjThApk_QcRWiaAaWYDf61IyDaIMcyVuND_oy_-sY6QOfEwoyWk3J--7J/exec",
 
   // Zona waktu untuk tampilan jam (WIB=7, WITA=8, WIT=9)
   OFFSET_JAM: 9,
-  LABEL_ZONA: "WIT",
+  LABEL_ZONA: "WIT"
+};
 
-  // Validasi radius lokasi kantor (opsional).
-  // Jika true, absen hanya diterima bila berada dalam radius.
-  AKTIFKAN_VALIDASI_RADIUS: false,
-  LOKASI_KANTOR: {
-    lat: -0.8762,      // ganti dengan latitude kantor
-    lng: 131.2558,     // ganti dengan longitude kantor
-    radiusMeter: 200   // toleransi jarak (meter)
+/* ---------- Util bersama (dipakai semua halaman) ---------- */
+const API = {
+  // Kirim aksi via POST (text/plain agar bebas CORS preflight)
+  post: function (payload) {
+    return fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); });
+  },
+  get: function (action) {
+    const url = CONFIG.APPS_SCRIPT_URL + (action ? "?action=" + encodeURIComponent(action) : "");
+    return fetch(url).then(function (r) { return r.json(); });
+  },
+  belumDikonfigurasi: function () {
+    return CONFIG.APPS_SCRIPT_URL.indexOf("GANTI_DENGAN") === 0;
   }
 };
+
+/* ---------- ID Perangkat (dibuat sekali, disimpan lokal) ---------- */
+function getDeviceId() {
+  let id = localStorage.getItem("pjlp_device_id");
+  if (!id) {
+    if (window.crypto && crypto.randomUUID) {
+      id = crypto.randomUUID();
+    } else {
+      id = "dev-" + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    }
+    localStorage.setItem("pjlp_device_id", id);
+  }
+  return id;
+}

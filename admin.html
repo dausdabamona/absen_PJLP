@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin — Absensi PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🛡️</span>
+        <div>
+          <h1>Panel Admin</h1>
+          <p class="subtitle">Absensi PJLP</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="index.html">&larr; Absen</a>
+    </header>
+
+    <!-- Login -->
+    <main id="seksi-login" class="card">
+      <h2 class="seksi-judul">Masuk Admin</h2>
+      <form id="form-login" autocomplete="off">
+        <label>
+          Password Admin
+          <input type="password" id="password" placeholder="Masukkan password" required>
+        </label>
+        <button type="submit" id="btn-login" class="submit">Masuk</button>
+      </form>
+      <div id="login-pesan" class="status err"></div>
+    </main>
+
+    <!-- Dashboard -->
+    <main id="seksi-dashboard" class="hidden">
+      <!-- Pengaturan lokasi -->
+      <div class="card" style="margin-bottom:16px;">
+        <h2 class="seksi-judul">📍 Lokasi & Pengaturan</h2>
+        <p class="seksi-info">Absen hanya diterima bila berada dalam radius titik di bawah ini.</p>
+        <form id="form-pengaturan" autocomplete="off">
+          <label>
+            Nama Instansi
+            <input type="text" id="s-instansi" placeholder="Politeknik Kelautan dan Perikanan Sorong">
+          </label>
+          <div class="grid2">
+            <label>Latitude<input type="text" id="s-lat" placeholder="-0.8762"></label>
+            <label>Longitude<input type="text" id="s-lng" placeholder="131.2558"></label>
+          </div>
+          <label>
+            Radius (meter)
+            <input type="number" id="s-radius" placeholder="200" min="20">
+          </label>
+          <button type="button" id="btn-lokasi-saya" class="mini">📡 Gunakan Lokasi Saya Sekarang</button>
+          <div id="lokasi-saya-info" class="status muted"></div>
+
+          <hr class="garis">
+          <label>
+            Ganti Password Admin <span class="opsional">(kosongkan jika tidak diubah)</span>
+            <input type="password" id="s-password" placeholder="Password baru (min. 6 karakter)">
+          </label>
+
+          <button type="submit" id="btn-simpan" class="submit">Simpan Pengaturan</button>
+        </form>
+        <div id="pengaturan-pesan" class="pesan hidden"></div>
+      </div>
+
+      <!-- Daftar perangkat -->
+      <div class="card">
+        <div class="filterbar">
+          <h2 class="seksi-judul" style="flex:1;">📱 Perangkat Terdaftar</h2>
+          <div class="filter-actions">
+            <button type="button" id="btn-refresh" class="mini">↻ Muat Ulang</button>
+          </div>
+        </div>
+        <div class="tab-status">
+          <button class="tab aktif" data-filter="semua">Semua</button>
+          <button class="tab" data-filter="pending">Pending</button>
+          <button class="tab" data-filter="disetujui">Disetujui</button>
+          <button class="tab" data-filter="diblokir">Diblokir</button>
+        </div>
+        <div id="perangkat-info" class="status muted">Memuat...</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>NIP/ID</th>
+                <th>Status</th>
+                <th>Didaftarkan</th>
+                <th>Device ID</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="perangkat-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

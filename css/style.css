@@ -229,3 +229,48 @@ td a { color: var(--primary); }
 .badge { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
 .badge.masuk { background: #dcfce7; color: var(--success); }
 .badge.pulang { background: #fef3c7; color: #b45309; }
+.badge.blok { background: #fee2e2; color: var(--danger); }
+
+/* Seksi & elemen umum tambahan */
+.seksi-judul { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.seksi-info { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+.center { text-align: center; }
+.big-ikon { font-size: 48px; margin: 8px 0; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.small { font-size: 11px; }
+.garis { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+.identitas {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1f5ff;
+  border: 1px solid #dbe6ff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.mini.danger { border-color: var(--danger); color: var(--danger); }
+
+.tab-status { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.tab {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.aktif { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.aksi-sel { white-space: nowrap; }
+.aksi-sel .mini { margin-bottom: 4px; }
+
+.link-admin { color: var(--muted); font-size: 12px; text-decoration: none; }
+.link-admin:hover { color: var(--primary); }
