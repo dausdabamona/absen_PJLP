@@ -8,7 +8,7 @@
 
 const CONFIG = {
   // URL Web App Google Apps Script Anda (berakhiran /exec):
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbx5mGglLeJyLiGbmnsg1rlbFLJ0UfMVj8VXjwQWeZSSBDJWLZW9aedF_TNcuSGbYhvo/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz5SSkbi0MODJJHpUjbLYa-B-uPOnfGzl5RD0C1i4UP7Pz8nUuFvv0hApT-Q2RHbYHh/exec",
 
   // Zona waktu untuk tampilan jam (WIB=7, WITA=8, WIT=9)
   OFFSET_JAM: 9,
