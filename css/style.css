@@ -274,3 +274,27 @@ td a { color: var(--primary); }
 
 .link-admin { color: var(--muted); font-size: 12px; text-decoration: none; }
 .link-admin:hover { color: var(--primary); }
+
+.info-jam {
+  background: #f1f5ff;
+  border: 1px solid #dbe6ff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #3b5bdb;
+  margin-bottom: 14px;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.switch-row input { width: auto; margin: 0; transform: scale(1.3); }

@@ -55,6 +55,25 @@
           <button type="button" id="btn-lokasi-saya" class="mini">📡 Gunakan Lokasi Saya Sekarang</button>
           <div id="lokasi-saya-info" class="status muted"></div>
 
+          <label class="switch-row">
+            <span>🧪 Mode Uji Coba (abaikan lokasi)</span>
+            <input type="checkbox" id="s-abaikan">
+          </label>
+          <p class="seksi-info">Saat aktif, absen diterima dari mana saja (untuk uji coba). Matikan saat siap produksi agar geofence kampus berlaku.</p>
+
+          <hr class="garis">
+
+          <h3 class="seksi-judul">🕒 Jam Kerja</h3>
+          <div class="grid2">
+            <label>Jam Masuk<input type="time" id="s-jam-masuk"></label>
+            <label>Jam Pulang<input type="time" id="s-jam-pulang"></label>
+          </div>
+          <div class="grid2">
+            <label>Toleransi Masuk (menit)<input type="number" id="s-buffer-masuk" min="0" placeholder="60"></label>
+            <label>Toleransi Pulang (menit)<input type="number" id="s-buffer-pulang" min="0" placeholder="240"></label>
+          </div>
+          <p class="seksi-info">Toleransi masuk: batas keterlambatan (mis. 60 = boleh sampai 1 jam setelah jam masuk). Toleransi pulang: boleh pulang lebih awal (mis. 240 = sampai 4 jam sebelum jam pulang).</p>
+
           <hr class="garis">
           <label>
             Ganti Password Admin <span class="opsional">(kosongkan jika tidak diubah)</span>

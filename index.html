@@ -62,48 +62,67 @@
         <button type="button" id="btn-cek-ulang2" class="mini">↻ Periksa Status</button>
       </section>
 
-      <!-- Disetujui: form absen -->
+      <!-- Disetujui: tab Absen / Jurnal -->
       <section id="seksi-absen" class="hidden">
         <div class="identitas">
           <span>👤 <b id="absen-nama"></b></span>
           <span id="absen-nip" class="muted"></span>
         </div>
 
-        <form id="form-absen" autocomplete="off">
-          <label>
-            Jenis Absen
-            <div class="segmented">
-              <input type="radio" id="masuk" name="jenis" value="Masuk" checked>
-              <label for="masuk">Masuk</label>
-              <input type="radio" id="pulang" name="jenis" value="Pulang">
-              <label for="pulang">Pulang</label>
+        <div class="tab-status">
+          <button type="button" class="tab aktif" data-pane="pane-absen">Absen</button>
+          <button type="button" class="tab" data-pane="pane-jurnal">Jurnal Kegiatan</button>
+        </div>
+
+        <!-- Pane: Absen (tanpa foto, jenis otomatis) -->
+        <div id="pane-absen">
+          <div class="info-jam" id="info-jam-kerja">Jam kerja: -</div>
+          <form id="form-absen" autocomplete="off">
+            <div class="field-group">
+              <div class="field-head">
+                <span>📍 Lokasi GPS</span>
+                <button type="button" id="btn-lokasi" class="mini">Ambil Lokasi</button>
+              </div>
+              <div id="status-lokasi" class="status muted">Lokasi belum diambil.</div>
             </div>
-          </label>
 
-          <div class="field-group">
-            <div class="field-head">
-              <span>📍 Lokasi GPS</span>
-              <button type="button" id="btn-lokasi" class="mini">Ambil Lokasi</button>
+            <label>
+              Keterangan <span class="opsional">(opsional)</span>
+              <textarea id="keterangan" rows="2" placeholder="Mis. dinas luar, izin sebentar, dll."></textarea>
+            </label>
+
+            <button type="submit" id="btn-submit" class="submit">Kirim Absen</button>
+          </form>
+        </div>
+
+        <!-- Pane: Jurnal Kegiatan (wajib foto + deskripsi) -->
+        <div id="pane-jurnal" class="hidden">
+          <form id="form-jurnal" autocomplete="off">
+            <label>
+              Deskripsi Kegiatan
+              <textarea id="j-kegiatan" rows="3" placeholder="Tuliskan kegiatan yang dilakukan..." required></textarea>
+            </label>
+
+            <div class="field-group">
+              <div class="field-head"><span>📷 Foto Kegiatan</span></div>
+              <input type="file" id="j-foto" accept="image/*" capture="environment" hidden>
+              <button type="button" id="btn-j-foto" class="photo-btn">Ambil / Pilih Foto</button>
+              <div id="j-preview-wrap" class="preview hidden">
+                <img id="j-preview" alt="Pratinjau foto kegiatan">
+              </div>
             </div>
-            <div id="status-lokasi" class="status muted">Lokasi belum diambil.</div>
-          </div>
 
-          <div class="field-group">
-            <div class="field-head"><span>📷 Foto / Selfie</span></div>
-            <input type="file" id="foto" accept="image/*" capture="user" hidden>
-            <button type="button" id="btn-foto" class="photo-btn">Ambil / Pilih Foto</button>
-            <div id="preview-wrap" class="preview hidden">
-              <img id="preview" alt="Pratinjau foto">
+            <div class="field-group">
+              <div class="field-head">
+                <span>📍 Lokasi <span class="opsional">(opsional)</span></span>
+                <button type="button" id="btn-j-lokasi" class="mini">Ambil Lokasi</button>
+              </div>
+              <div id="j-status-lokasi" class="status muted">Lokasi belum diambil.</div>
             </div>
-          </div>
 
-          <label>
-            Keterangan <span class="opsional">(opsional)</span>
-            <textarea id="keterangan" rows="2" placeholder="Mis. dinas luar, izin sebentar, dll."></textarea>
-          </label>
-
-          <button type="submit" id="btn-submit" class="submit">Kirim Absen</button>
-        </form>
+            <button type="submit" id="btn-j-submit" class="submit">Simpan Jurnal</button>
+          </form>
+        </div>
       </section>
 
       <div id="pesan" class="pesan hidden"></div>

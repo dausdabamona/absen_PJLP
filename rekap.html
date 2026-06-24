@@ -13,14 +13,19 @@
       <div class="brand">
         <span class="logo">📋</span>
         <div>
-          <h1>Rekap Absensi</h1>
-          <p class="subtitle">Data kehadiran PJLP</p>
+          <h1>Rekap</h1>
+          <p class="subtitle">Absensi &amp; Jurnal Kegiatan PJLP</p>
         </div>
       </div>
       <a class="link-rekap" href="index.html">&larr; Absen</a>
     </header>
 
     <main class="card">
+      <div class="tab-status">
+        <button class="tab aktif" data-mode="absensi">Absensi</button>
+        <button class="tab" data-mode="jurnal">Jurnal Kegiatan</button>
+      </div>
+
       <div class="filterbar">
         <label>
           Cari Nama
@@ -44,18 +49,7 @@
 
       <div class="table-wrap">
         <table id="tabel">
-          <thead>
-            <tr>
-              <th>Tanggal</th>
-              <th>Jam</th>
-              <th>Nama</th>
-              <th>NIP/ID</th>
-              <th>Jenis</th>
-              <th>Lokasi</th>
-              <th>Foto</th>
-              <th>Keterangan</th>
-            </tr>
-          </thead>
+          <thead><tr id="thead-row"></tr></thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>

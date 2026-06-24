@@ -1,76 +1,88 @@
 /* ============================================================
    Logika halaman rekap (rekap.html)
+   Dua mode: Absensi & Jurnal Kegiatan.
    ============================================================ */
 
 (function () {
   "use strict";
 
-  const $ = (id) => document.getElementById(id);
+  const $ = function (id) { return document.getElementById(id); };
   const info = $("info");
+  const theadRow = $("thead-row");
   const tbody = $("tbody");
 
+  let mode = "absensi";
   let semuaData = [];
 
-  function fmtTanggal(v) {
-    // Apps Script bisa mengirim string ISO atau "yyyy-MM-dd"
-    if (!v) return "";
-    return String(v).substring(0, 10);
-  }
+  // Definisi kolom per mode: {judul, ambil(row)->html, raw(row)->teks CSV}
+  const KOLOM = {
+    absensi: [
+      { judul: "Tanggal", get: function (r) { return tgl(r["Tanggal"]); } },
+      { judul: "Jam", get: function (r) { return f(r, ["Jam"]); } },
+      { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
+      { judul: "NIP/ID", get: function (r) { return f(r, ["NIP/ID", "NIP", "ID"]); } },
+      { judul: "Jenis", get: function (r) { var j = f(r, ["Jenis"]); return badge(j); }, raw: function (r) { return f(r, ["Jenis"]); } },
+      { judul: "Status Waktu", get: function (r) { return f(r, ["Status Waktu"]); } },
+      { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } },
+      { judul: "Keterangan", get: function (r) { return f(r, ["Keterangan"]); } }
+    ],
+    jurnal: [
+      { judul: "Tanggal", get: function (r) { return tgl(r["Tanggal"]); } },
+      { judul: "Jam", get: function (r) { return f(r, ["Jam"]); } },
+      { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
+      { judul: "NIP/ID", get: function (r) { return f(r, ["NIP/ID", "NIP", "ID"]); } },
+      { judul: "Kegiatan", get: function (r) { return f(r, ["Kegiatan"]); } },
+      { judul: "Foto", get: function (r) { return link(f(r, ["Foto"]), "Lihat"); }, raw: function (r) { return f(r, ["Foto"]); } },
+      { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } }
+    ]
+  };
 
-  function getField(row, kandidat) {
-    for (const k of kandidat) {
-      if (row[k] !== undefined && row[k] !== "") return row[k];
+  function tgl(v) { return v ? String(v).substring(0, 10) : ""; }
+  function f(row, kandidat) {
+    for (var i = 0; i < kandidat.length; i++) {
+      var k = kandidat[i];
+      if (row[k] !== undefined && row[k] !== "") return String(row[k]);
     }
     return "";
   }
+  function badge(j) {
+    if (!j) return "";
+    var cls = j.toLowerCase() === "pulang" ? "pulang" : "masuk";
+    return '<span class="badge ' + cls + '">' + esc(j) + "</span>";
+  }
+  function link(url, teks) { return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + teks + "</a>" : "-"; }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
 
   function render(data) {
-    tbody.innerHTML = "";
+    var kolom = KOLOM[mode];
+    theadRow.innerHTML = kolom.map(function (k) { return "<th>" + k.judul + "</th>"; }).join("");
+
     if (!data.length) {
+      tbody.innerHTML = "";
       info.textContent = "Tidak ada data untuk filter ini.";
-      info.className = "status muted";
       return;
     }
-    info.textContent = `Menampilkan ${data.length} baris.`;
-    info.className = "status muted";
-
-    const rows = data.map((row) => {
-      const tanggal = fmtTanggal(getField(row, ["Tanggal"]));
-      const jam = getField(row, ["Jam"]);
-      const nama = getField(row, ["Nama"]);
-      const nip = getField(row, ["NIP/ID", "NIP", "ID"]);
-      const jenis = getField(row, ["Jenis"]);
-      const linkLok = getField(row, ["Link Lokasi"]);
-      const foto = getField(row, ["Foto"]);
-      const ket = getField(row, ["Keterangan"]);
-
-      const badge = jenis.toLowerCase() === "pulang" ? "pulang" : "masuk";
-      const lokHtml = linkLok ? `<a href="${linkLok}" target="_blank" rel="noopener">Peta</a>` : "-";
-      const fotoHtml = foto ? `<a href="${foto}" target="_blank" rel="noopener">Lihat</a>` : "-";
-
-      return `<tr>
-        <td>${tanggal}</td>
-        <td>${jam}</td>
-        <td>${nama}</td>
-        <td>${nip}</td>
-        <td><span class="badge ${badge}">${jenis}</span></td>
-        <td>${lokHtml}</td>
-        <td>${fotoHtml}</td>
-        <td>${ket}</td>
-      </tr>`;
-    });
-    tbody.innerHTML = rows.join("");
+    info.textContent = "Menampilkan " + data.length + " baris.";
+    tbody.innerHTML = data.map(function (row) {
+      return "<tr>" + kolom.map(function (k) {
+        var isi = k.get(row);
+        // jangan escape jika sudah berupa html (badge/link); escape sisanya
+        if (k.judul === "Jenis" || k.judul === "Lokasi" || k.judul === "Foto") return "<td>" + isi + "</td>";
+        return "<td>" + esc(isi) + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
   }
 
   function terapkanFilter() {
-    const nama = $("f-nama").value.trim().toLowerCase();
-    const dari = $("f-dari").value;
-    const sampai = $("f-sampai").value;
-
-    const hasil = semuaData.filter((row) => {
-      const rNama = String(getField(row, ["Nama"])).toLowerCase();
-      const rTgl = fmtTanggal(getField(row, ["Tanggal"]));
-      if (nama && !rNama.includes(nama)) return false;
+    var nama = $("f-nama").value.trim().toLowerCase();
+    var dari = $("f-dari").value;
+    var sampai = $("f-sampai").value;
+    var hasil = semuaData.filter(function (row) {
+      var rNama = f(row, ["Nama"]).toLowerCase();
+      var rTgl = tgl(f(row, ["Tanggal"]));
+      if (nama && rNama.indexOf(nama) === -1) return false;
       if (dari && rTgl < dari) return false;
       if (sampai && rTgl > sampai) return false;
       return true;
@@ -80,17 +92,16 @@
   }
 
   function muatData() {
-    if (CONFIG.APPS_SCRIPT_URL.indexOf("GANTI_DENGAN") === 0) {
-      info.textContent = "Aplikasi belum dikonfigurasi. Isi APPS_SCRIPT_URL di js/config.js.";
+    if (API.belumDikonfigurasi()) {
+      info.textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL di js/config.js).";
       info.className = "status err";
       return;
     }
     info.textContent = "Memuat data...";
     info.className = "status muted";
-
-    fetch(CONFIG.APPS_SCRIPT_URL)
-      .then((r) => r.json())
-      .then((res) => {
+    var action = mode === "jurnal" ? "rekapJurnal" : "rekap";
+    API.get(action)
+      .then(function (res) {
         if (res.status === "success") {
           semuaData = res.data || [];
           terapkanFilter();
@@ -99,45 +110,41 @@
           info.className = "status err";
         }
       })
-      .catch((err) => {
+      .catch(function (err) {
         info.textContent = "Gagal memuat data: " + err.message;
         info.className = "status err";
       });
   }
 
-  /* ---------- Ekspor CSV ---------- */
   function eksporCSV() {
-    const data = terapkanFilter();
+    var data = terapkanFilter();
     if (!data.length) { alert("Tidak ada data untuk diekspor."); return; }
-
-    const header = ["Tanggal", "Jam", "Nama", "NIP/ID", "Jenis", "Latitude", "Longitude", "Link Lokasi", "Foto", "Keterangan"];
-    const baris = data.map((row) => [
-      fmtTanggal(getField(row, ["Tanggal"])),
-      getField(row, ["Jam"]),
-      getField(row, ["Nama"]),
-      getField(row, ["NIP/ID", "NIP", "ID"]),
-      getField(row, ["Jenis"]),
-      getField(row, ["Latitude"]),
-      getField(row, ["Longitude"]),
-      getField(row, ["Link Lokasi"]),
-      getField(row, ["Foto"]),
-      getField(row, ["Keterangan"])
-    ]);
-
-    const csv = [header, ...baris]
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    var kolom = KOLOM[mode];
+    var header = kolom.map(function (k) { return k.judul; });
+    var baris = data.map(function (row) {
+      return kolom.map(function (k) { return k.raw ? k.raw(row) : k.get(row); });
+    });
+    var csv = [header].concat(baris)
+      .map(function (r) { return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(","); })
       .join("\r\n");
-
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
     a.href = url;
-    a.download = "rekap-absensi-pjlp.csv";
+    a.download = "rekap-" + mode + "-pjlp.csv";
     a.click();
     URL.revokeObjectURL(url);
   }
 
   /* ---------- Event ---------- */
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (x) { x.classList.remove("aktif"); });
+      t.classList.add("aktif");
+      mode = t.getAttribute("data-mode");
+      muatData();
+    });
+  });
   $("btn-refresh").addEventListener("click", muatData);
   $("btn-ekspor").addEventListener("click", eksporCSV);
   $("f-nama").addEventListener("input", terapkanFilter);
