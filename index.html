@@ -6,7 +6,6 @@
   <title>Absensi PJLP</title>
   <meta name="theme-color" content="#0d6efd">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app">
@@ -27,27 +26,35 @@
         <div class="clock-date">memuat tanggal...</div>
       </div>
 
-      <!-- Login Google -->
-      <section id="seksi-login" class="center">
-        <h2 class="seksi-judul">Masuk untuk Absen</h2>
-        <p class="seksi-info">Gunakan akun Google Anda untuk masuk, lalu daftarkan diri.</p>
-        <div id="g-signin" class="gbtn-wrap"></div>
-        <div id="login-pesan" class="status err"></div>
+      <!-- AUTH: Login / Daftar -->
+      <section id="seksi-auth">
+        <div class="tab-status">
+          <button type="button" class="tab aktif" data-auth="pane-login">Login</button>
+          <button type="button" class="tab" data-auth="pane-daftar">Daftar</button>
+        </div>
+
+        <div id="pane-login">
+          <form id="form-login" autocomplete="on">
+            <label>Email<input type="email" id="l-email" placeholder="email@contoh.com" required></label>
+            <label>Password<input type="password" id="l-password" placeholder="Password" required></label>
+            <button type="submit" id="btn-login" class="submit">Masuk</button>
+          </form>
+        </div>
+
+        <div id="pane-daftar" class="hidden">
+          <form id="form-daftar" autocomplete="off">
+            <label>Nama Lengkap<input type="text" id="d-nama" required></label>
+            <label>Email<input type="email" id="d-email" placeholder="email@contoh.com" required></label>
+            <label>NIP / ID Pegawai <span class="opsional">(opsional)</span><input type="text" id="d-nip"></label>
+            <label>Password <span class="opsional">(min. 6 karakter)</span><input type="password" id="d-password" required></label>
+            <button type="submit" id="btn-daftar" class="submit">Daftar</button>
+          </form>
+        </div>
+        <div id="auth-pesan" class="status"></div>
       </section>
 
       <!-- Loading -->
       <section id="seksi-loading" class="status muted center hidden">Memeriksa akun...</section>
-
-      <!-- Daftar -->
-      <section id="seksi-daftar" class="hidden">
-        <h2 class="seksi-judul">Lengkapi Pendaftaran</h2>
-        <p class="seksi-info">Akun <b id="daftar-email"></b> belum terdaftar. Lengkapi data lalu tunggu persetujuan admin.</p>
-        <form id="form-daftar" autocomplete="off">
-          <label>Nama Lengkap<input type="text" id="d-nama" required></label>
-          <label>NIP / ID Pegawai <span class="opsional">(opsional)</span><input type="text" id="d-nip"></label>
-          <button type="submit" id="btn-daftar" class="submit">Daftarkan Diri</button>
-        </form>
-      </section>
 
       <!-- Pending -->
       <section id="seksi-pending" class="hidden center">
@@ -77,7 +84,6 @@
           <button type="button" class="tab" data-pane="pane-jurnal">Jurnal Kegiatan</button>
         </div>
 
-        <!-- Absen -->
         <div id="pane-absen">
           <div class="info-jam" id="info-jam-kerja">Jam kerja: -</div>
           <form id="form-absen" autocomplete="off">
@@ -95,7 +101,6 @@
           </form>
         </div>
 
-        <!-- Jurnal -->
         <div id="pane-jurnal" class="hidden">
           <div id="reminder-banner" class="reminder hidden"></div>
           <form id="form-jurnal" autocomplete="off">

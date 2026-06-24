@@ -107,17 +107,27 @@
   $("f-dari").addEventListener("change", terapkanFilter);
   $("f-sampai").addEventListener("change", terapkanFilter);
 
-  /* ---------- Login ---------- */
-  if (Auth.belumDikonfigurasi() || API.belumDikonfigurasi()) {
-    $("login-pesan").textContent = "Aplikasi belum dikonfigurasi (GOOGLE_CLIENT_ID / APPS_SCRIPT_URL).";
-  } else {
-    Auth.init({
-      buttonEl: $("g-signin"),
-      onLogin: function () {
-        $("seksi-login").classList.add("hidden");
-        $("seksi-konten").classList.remove("hidden");
-        muatData();
-      }
-    });
+  function masukKonten() {
+    $("seksi-login").classList.add("hidden");
+    $("seksi-konten").classList.remove("hidden");
+    muatData();
   }
+
+  /* ---------- Login ---------- */
+  $("form-login").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (API.belumDikonfigurasi()) { $("login-pesan").textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; return; }
+    const btn = $("btn-login"); btn.disabled = true; btn.textContent = "Masuk...";
+    $("login-pesan").textContent = "";
+    API.post({ action: "login", token: "", email: $("l-email").value.trim(), password: $("l-password").value })
+      .then(function (res) {
+        if (res.status === "success") { Sesi.set(res.token); masukKonten(); }
+        else $("login-pesan").textContent = res.message || "Gagal login.";
+      })
+      .catch(function (err) { $("login-pesan").textContent = "Gagal: " + err.message; })
+      .finally(function () { btn.disabled = false; btn.textContent = "Masuk"; });
+  });
+
+  // auto bila sudah login
+  if (Sesi.token() && !API.belumDikonfigurasi()) { masukKonten(); }
 })();

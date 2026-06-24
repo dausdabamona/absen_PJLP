@@ -6,7 +6,6 @@
   <title>Panel Admin — Absensi PJLP</title>
   <meta name="theme-color" content="#0d6efd">
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   <div class="app wide">
@@ -22,10 +21,14 @@
     </header>
 
     <!-- Login -->
-    <main id="seksi-login" class="card center">
+    <main id="seksi-login" class="card">
       <h2 class="seksi-judul">Masuk Admin</h2>
-      <p class="seksi-info">Masuk dengan akun Google admin.</p>
-      <div id="g-signin" class="gbtn-wrap"></div>
+      <p class="seksi-info">Masuk dengan akun admin (email + password).</p>
+      <form id="form-login" autocomplete="on">
+        <label>Email<input type="email" id="l-email" required></label>
+        <label>Password<input type="password" id="l-password" required></label>
+        <button type="submit" id="btn-login" class="submit">Masuk</button>
+      </form>
       <div id="login-pesan" class="status err"></div>
     </main>
 
