@@ -1,6 +1,6 @@
 /* ============================================================
-   Rekap (rekap.html) — data perangkat sendiri; admin (password)
-   bisa melihat semua. Filter server-side per Device ID.
+   Rekap (rekap.html) — KHUSUS ADMIN. Wajib login admin dulu,
+   lalu menampilkan data semua perangkat.
    ============================================================ */
 
 (function () {
@@ -11,6 +11,9 @@
 
   let mode = "absensi";
   let semuaData = [];
+  // Sesi admin (berbagi dengan panel admin agar tidak perlu login dua kali)
+  let password = sessionStorage.getItem("pjlp_admin_pw") || "";
+  let email = sessionStorage.getItem("pjlp_admin_email") || "";
 
   const KOLOM = {
     absensi: [
@@ -19,6 +22,7 @@
       { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
       { judul: "Jenis", get: function (r) { return badge(f(r, ["Jenis"])); }, raw: function (r) { return f(r, ["Jenis"]); } },
       { judul: "Status Waktu", get: function (r) { return f(r, ["Status Waktu"]); } },
+      { judul: "Terlambat (mnt)", get: function (r) { return menitTerlambat(f(r, ["Status Waktu"])); }, raw: function (r) { return menitTerlambat(f(r, ["Status Waktu"])); } },
       { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } },
       { judul: "Keterangan", get: function (r) { return f(r, ["Keterangan"]); } }
     ],
@@ -44,6 +48,7 @@
   const HTML_COLS = { "Jenis": 1, "Lokasi": 1, "Foto": 1, "Surat": 1 };
 
   function tgl(v) { return v ? String(v).substring(0, 10) : ""; }
+  function menitTerlambat(s) { var m = /Terlambat\s+(\d+)/i.exec(s || ""); return m ? m[1] : "0"; }
   function f(row, kandidat) { for (var i = 0; i < kandidat.length; i++) { var k = kandidat[i]; if (row[k] !== undefined && row[k] !== "") return String(row[k]); } return ""; }
   function badge(j) { if (!j) return ""; var cls = j.toLowerCase() === "pulang" ? "pulang" : "masuk"; return '<span class="badge ' + cls + '">' + esc(j) + "</span>"; }
   function link(url, teks) { return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + teks + "</a>" : "-"; }
@@ -77,10 +82,10 @@
   function muatData() {
     if (API.belumDikonfigurasi()) { info.textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; info.className = "status err"; return; }
     info.textContent = "Memuat data..."; info.className = "status muted";
-    API.post({ action: ACTION[mode], adminPassword: $("f-admin").value })
+    API.post({ action: ACTION[mode], adminPassword: password })
       .then(function (res) {
         if (res.status === "success") {
-          $("badge-admin").classList.toggle("hidden", !res.isAdmin);
+          if (res.isAdmin === false) { keluar("Sesi berakhir, masuk lagi."); return; }
           semuaData = res.data || [];
           terapkanFilter();
         } else { info.textContent = "Gagal memuat: " + (res.message || "kesalahan"); info.className = "status err"; }
@@ -112,7 +117,41 @@
   $("f-nama").addEventListener("input", terapkanFilter);
   $("f-dari").addEventListener("change", terapkanFilter);
   $("f-sampai").addEventListener("change", terapkanFilter);
-  $("f-admin").addEventListener("change", muatData);
 
-  muatData();
+  /* ---------- Gerbang login admin ---------- */
+  function masukRekap() {
+    $("seksi-login").classList.add("hidden");
+    $("seksi-rekap").classList.remove("hidden");
+    muatData();
+  }
+  function keluar(pesan) {
+    sessionStorage.removeItem("pjlp_admin_pw"); sessionStorage.removeItem("pjlp_admin_email");
+    password = ""; email = "";
+    $("seksi-rekap").classList.add("hidden");
+    $("seksi-login").classList.remove("hidden");
+    if (pesan) $("login-pesan").textContent = pesan;
+  }
+
+  $("form-login").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (API.belumDikonfigurasi()) { $("login-pesan").textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; return; }
+    const pw = $("l-password").value, em = $("l-email").value.trim();
+    const btn = $("btn-login"); btn.disabled = true; btn.textContent = "Memeriksa...";
+    $("login-pesan").textContent = "";
+    API.post({ action: "adminLogin", email: em, password: pw, deviceId: "" })
+      .then(function (res) {
+        if (res.status === "success") {
+          password = pw; email = em;
+          sessionStorage.setItem("pjlp_admin_pw", pw); sessionStorage.setItem("pjlp_admin_email", em);
+          masukRekap();
+        } else $("login-pesan").textContent = res.message || "Login gagal.";
+      })
+      .catch(function (err) { $("login-pesan").textContent = "Gagal: " + err.message; })
+      .then(function () { btn.disabled = false; btn.textContent = "Masuk"; });
+  });
+
+  $("btn-keluar").addEventListener("click", function () { keluar(""); });
+
+  /* ---------- Auto-login bila sudah login di sesi ini ---------- */
+  if (password && email && !API.belumDikonfigurasi()) masukRekap();
 })();

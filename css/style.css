@@ -333,3 +333,13 @@ td a { color: var(--primary); }
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Header mini di halaman rekap (badge admin + tombol keluar) */
+.topbar-mini {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.topbar-mini .info-jam { margin-bottom: 0; }
