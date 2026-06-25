@@ -59,6 +59,7 @@ function setup() {
   if (!p.getProperty("BUFFER_MASUK")) p.setProperty("BUFFER_MASUK", String(DEFAULT_BUFFER_MASUK));
   if (!p.getProperty("BUFFER_PULANG")) p.setProperty("BUFFER_PULANG", String(DEFAULT_BUFFER_PULANG));
   if (!p.getProperty("ABAIKAN_LOKASI")) p.setProperty("ABAIKAN_LOKASI", "true");
+  if (!p.getProperty("BEBAS_JUMAT")) p.setProperty("BEBAS_JUMAT", "true");
   Logger.log("Setup selesai. Password admin awal: " + p.getProperty("ADMIN_PASSWORD"));
   Logger.log("GANTI password ini lewat panel admin setelah login pertama.");
 }
@@ -116,8 +117,12 @@ function absen(data) {
   if (dev.status !== "disetujui") return jsonOutput({ status: "error", code: dev.status, message: "Perangkat berstatus '" + dev.status + "'. Hubungi admin." });
 
   const set = getPengaturan();
+  const now = new Date();
+  const jumat = fmt(now, "u") === "5"; // 5 = Jumat
+  const bebasLokasi = set.abaikanLokasi || (set.bebasJumat && jumat);
+
   let jarak = "";
-  if (!set.abaikanLokasi) {
+  if (!bebasLokasi) {
     if (isNaN(set.lat) || isNaN(set.lng) || !set.radius) return jsonOutput({ status: "error", message: "Lokasi kampus belum diatur oleh admin." });
     if (!data.lat || !data.lng) return jsonOutput({ status: "error", message: "Lokasi GPS wajib diambil." });
     jarak = haversine(data.lat, data.lng, set.lat, set.lng);
@@ -126,15 +131,15 @@ function absen(data) {
     jarak = haversine(data.lat, data.lng, set.lat, set.lng);
   }
 
-  const now = new Date();
   const jenis = jenisOtomatis(now, set);
   const statusWaktu = hitungStatusWaktu(now, jenis, set);
   const linkLok = (data.lat && data.lng) ? "https://maps.google.com/?q=" + data.lat + "," + data.lng : "";
+  const ket = (set.bebasJumat && jumat && !set.abaikanLokasi) ? ((data.keterangan ? data.keterangan + " " : "") + "[Jumat: bebas lokasi]").trim() : (data.keterangan || "");
   getSheetAbsen().appendRow([
     now, dev.deviceId, dev.nama, dev.nip, jenis, statusWaktu,
     fmt(now, "yyyy-MM-dd"), fmt(now, "HH:mm:ss"),
     data.lat || "", data.lng || "", data.akurasi || "",
-    jarak === "" ? "" : Math.round(jarak), linkLok, data.keterangan || ""
+    jarak === "" ? "" : Math.round(jarak), linkLok, ket
   ]);
   const infoJarak = jarak === "" ? "" : ", ±" + Math.round(jarak) + " m dari titik kampus";
   return jsonOutput({ status: "success", message: "Absen " + jenis + " berhasil (" + statusWaktu + infoJarak + ")." });
@@ -240,6 +245,7 @@ function simpanPengaturan(data) {
   if (data.bufferMasuk !== undefined && data.bufferMasuk !== "") p.setProperty("BUFFER_MASUK", String(parseInt(data.bufferMasuk, 10) || 0));
   if (data.bufferPulang !== undefined && data.bufferPulang !== "") p.setProperty("BUFFER_PULANG", String(parseInt(data.bufferPulang, 10) || 0));
   if (data.abaikanLokasi !== undefined) p.setProperty("ABAIKAN_LOKASI", data.abaikanLokasi ? "true" : "false");
+  if (data.bebasJumat !== undefined) p.setProperty("BEBAS_JUMAT", data.bebasJumat ? "true" : "false");
   if (data.passwordBaru) {
     if (String(data.passwordBaru).length < 6) return jsonOutput({ status: "error", message: "Password baru minimal 6 karakter." });
     p.setProperty("ADMIN_PASSWORD", String(data.passwordBaru));
@@ -302,7 +308,8 @@ function getPengaturan() {
     jamPulang: p.getProperty("JAM_PULANG") || DEFAULT_JAM_PULANG,
     bufferMasuk: parseInt(p.getProperty("BUFFER_MASUK") || String(DEFAULT_BUFFER_MASUK), 10),
     bufferPulang: parseInt(p.getProperty("BUFFER_PULANG") || String(DEFAULT_BUFFER_PULANG), 10),
-    abaikanLokasi: (p.getProperty("ABAIKAN_LOKASI") || "true") === "true"
+    abaikanLokasi: (p.getProperty("ABAIKAN_LOKASI") || "true") === "true",
+    bebasJumat: (p.getProperty("BEBAS_JUMAT") || "true") === "true"
   };
 }
 function getPengaturanPublic() {
@@ -311,7 +318,7 @@ function getPengaturanPublic() {
     lat: isNaN(s.lat) ? "" : s.lat, lng: isNaN(s.lng) ? "" : s.lng, radius: s.radius || "",
     namaInstansi: s.namaInstansi, jamMasuk: s.jamMasuk, jamPulang: s.jamPulang,
     bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi,
-    adminEmail: getAdminEmail()
+    bebasJumat: s.bebasJumat, adminEmail: getAdminEmail()
   };
 }
 

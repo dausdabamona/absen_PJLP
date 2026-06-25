@@ -90,7 +90,9 @@
       .then(function (res) {
         if (res.status !== "success") throw new Error(res.message || "gagal");
         if (res.jamMasuk && res.jamPulang) {
-          $("info-jam-kerja").textContent = "Jam kerja: masuk " + res.jamMasuk + " • pulang " + res.jamPulang + " — sebelum 12.00 = Masuk, 12.00 ke atas = Pulang.";
+          let info = "Jam kerja: masuk " + res.jamMasuk + " • pulang " + res.jamPulang + " — sebelum 12.00 = Masuk, 12.00 ke atas = Pulang.";
+          if (waktuLokal().getDay() === 5) info += " 📅 Hari Jumat: absen boleh dari mana saja.";
+          $("info-jam-kerja").textContent = info;
         }
         if (!res.terdaftar) { tampil("daftar"); return; }
         if (res.deviceStatus === "disetujui") {

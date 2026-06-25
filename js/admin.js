@@ -51,6 +51,7 @@
         $("s-instansi").value = s.namaInstansi || "";
         $("s-lat").value = s.lat || ""; $("s-lng").value = s.lng || ""; $("s-radius").value = s.radius || "";
         $("s-abaikan").checked = !!s.abaikanLokasi;
+        $("s-jumat").checked = !!s.bebasJumat;
         $("s-jam-masuk").value = s.jamMasuk || ""; $("s-jam-pulang").value = s.jamPulang || "";
         $("s-buffer-masuk").value = (s.bufferMasuk !== undefined && s.bufferMasuk !== "") ? s.bufferMasuk : "";
         $("s-buffer-pulang").value = (s.bufferPulang !== undefined && s.bufferPulang !== "") ? s.bufferPulang : "";
@@ -129,6 +130,7 @@
       namaInstansi: $("s-instansi").value.trim(),
       lat: $("s-lat").value.trim(), lng: $("s-lng").value.trim(), radius: $("s-radius").value.trim(),
       abaikanLokasi: $("s-abaikan").checked,
+      bebasJumat: $("s-jumat").checked,
       jamMasuk: $("s-jam-masuk").value.trim(), jamPulang: $("s-jam-pulang").value.trim(),
       bufferMasuk: $("s-buffer-masuk").value.trim(), bufferPulang: $("s-buffer-pulang").value.trim(),
       passwordBaru: pwBaru,
