@@ -26,7 +26,11 @@
       .finally(function () { btn.disabled = false; btn.textContent = "Masuk"; });
   });
 
-  function masukDashboard() { $("seksi-login").classList.add("hidden"); $("seksi-dashboard").classList.remove("hidden"); muatData(); }
+  function masukDashboard() {
+    // Tandai HP ini sebagai perangkat admin: berikutnya situs langsung buka panel admin.
+    localStorage.setItem("pjlp_admin_device", "1");
+    $("seksi-login").classList.add("hidden"); $("seksi-dashboard").classList.remove("hidden"); muatData();
+  }
   function keluar() {
     sessionStorage.removeItem("pjlp_admin_pw"); password = "";
     $("seksi-dashboard").classList.add("hidden"); $("seksi-login").classList.remove("hidden");
@@ -129,6 +133,16 @@
     }).catch(function (err) {
       pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Pengaturan"; });
+  });
+
+  /* ---------- Keluar (batalkan perangkat admin) ---------- */
+  const linkKeluar = document.getElementById("link-keluar");
+  if (linkKeluar) linkKeluar.addEventListener("click", function (ev) {
+    ev.preventDefault();
+    if (!confirm("Keluar dan hentikan perangkat ini sebagai admin? Situs akan kembali ke halaman absen.")) return;
+    localStorage.removeItem("pjlp_admin_device");
+    sessionStorage.removeItem("pjlp_admin_pw");
+    location.replace("index.html?absen=1");
   });
 
   /* ---------- Auto-login ---------- */

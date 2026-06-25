@@ -9,10 +9,12 @@
   "use strict";
 
   // Laptop/desktop -> panel admin otomatis; HP/tablet -> halaman absen PJLP.
-  // Tambah "?absen=1" pada URL untuk membuka halaman absen di laptop (paksa).
+  // Perangkat yang pernah login admin (mis. HP Firdaus) juga diarahkan ke admin.
+  // Tambah "?absen=1" pada URL untuk membuka halaman absen secara paksa.
   var ua = navigator.userAgent || "";
   var mobile = /Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile|Mobile/i.test(ua);
-  if (!mobile && location.search.indexOf("absen") === -1) { location.replace("admin.html"); return; }
+  var adminDevice = localStorage.getItem("pjlp_admin_device") === "1";
+  if ((!mobile || adminDevice) && location.search.indexOf("absen") === -1) { location.replace("admin.html"); return; }
 
   const $ = function (id) { return document.getElementById(id); };
   const deviceId = getDeviceId();
