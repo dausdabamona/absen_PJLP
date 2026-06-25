@@ -52,6 +52,7 @@ function setup() {
   getSheetIzin();
   getSheetPerangkat();
   const p = props();
+  if (!p.getProperty("ADMIN_EMAIL")) p.setProperty("ADMIN_EMAIL", "dausdaba@polikpsorong.ac.id");
   if (!p.getProperty("ADMIN_PASSWORD")) p.setProperty("ADMIN_PASSWORD", "admin123");
   if (!p.getProperty("JAM_MASUK")) p.setProperty("JAM_MASUK", DEFAULT_JAM_MASUK);
   if (!p.getProperty("JAM_PULANG")) p.setProperty("JAM_PULANG", DEFAULT_JAM_PULANG);
@@ -200,17 +201,17 @@ function rekapData(data, namaSheet) {
 
 /* ====================== ADMIN =========================== */
 function adminLogin(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   return jsonOutput({ status: "success", message: "Login berhasil." });
 }
 
 function adminData(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   return jsonOutput({ status: "success", perangkat: listPerangkat(), pengaturan: getPengaturanPublic() });
 }
 
 function setStatusPerangkat(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   if (["pending", "disetujui", "diblokir"].indexOf(data.statusBaru) === -1) return jsonOutput({ status: "error", message: "Status tidak valid." });
   const dev = cariPerangkat(data.deviceId);
   if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
@@ -220,7 +221,7 @@ function setStatusPerangkat(data) {
 }
 
 function hapusPerangkat(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   const dev = cariPerangkat(data.deviceId);
   if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
   getSheetPerangkat().deleteRow(dev.rowIndex);
@@ -228,7 +229,7 @@ function hapusPerangkat(data) {
 }
 
 function simpanPengaturan(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Password admin salah." });
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   const p = props();
   if (data.lat !== undefined && data.lat !== "") p.setProperty("KAMPUS_LAT", String(data.lat));
   if (data.lng !== undefined && data.lng !== "") p.setProperty("KAMPUS_LNG", String(data.lng));
@@ -243,6 +244,10 @@ function simpanPengaturan(data) {
     if (String(data.passwordBaru).length < 6) return jsonOutput({ status: "error", message: "Password baru minimal 6 karakter." });
     p.setProperty("ADMIN_PASSWORD", String(data.passwordBaru));
   }
+  if (data.emailAdminBaru) {
+    if (String(data.emailAdminBaru).indexOf("@") === -1) return jsonOutput({ status: "error", message: "Email admin tidak valid." });
+    p.setProperty("ADMIN_EMAIL", String(data.emailAdminBaru).trim());
+  }
   return jsonOutput({ status: "success", message: "Pengaturan disimpan." });
 }
 
@@ -252,8 +257,16 @@ function getAdminPassword() {
   if (!pw) { pw = "admin123"; props().setProperty("ADMIN_PASSWORD", pw); }
   return pw;
 }
+function getAdminEmail() {
+  let em = props().getProperty("ADMIN_EMAIL");
+  if (!em) { em = "dausdaba@polikpsorong.ac.id"; props().setProperty("ADMIN_EMAIL", em); }
+  return em;
+}
 function cekAdmin(data) {
-  return data.password !== undefined && String(data.password) === getAdminPassword();
+  // Admin tunggal: email HARUS cocok DAN password HARUS cocok.
+  const emailOk = data.email !== undefined && String(data.email).trim().toLowerCase() === getAdminEmail().toLowerCase();
+  const passOk = data.password !== undefined && String(data.password) === getAdminPassword();
+  return emailOk && passOk;
 }
 
 /* ====================== JAM KERJA ======================= */
@@ -297,7 +310,8 @@ function getPengaturanPublic() {
   return {
     lat: isNaN(s.lat) ? "" : s.lat, lng: isNaN(s.lng) ? "" : s.lng, radius: s.radius || "",
     namaInstansi: s.namaInstansi, jamMasuk: s.jamMasuk, jamPulang: s.jamPulang,
-    bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi
+    bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi,
+    adminEmail: getAdminEmail()
   };
 }
 

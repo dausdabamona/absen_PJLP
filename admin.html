@@ -27,7 +27,9 @@
     <!-- Login -->
     <main id="seksi-login" class="card">
       <h2 class="seksi-judul">Masuk Admin</h2>
+      <p class="seksi-info">Hanya admin terdaftar yang dapat masuk.</p>
       <form id="form-login" autocomplete="off">
+        <label>Email Admin<input type="email" id="l-email" placeholder="dausdaba@polikpsorong.ac.id" required></label>
         <label>Password Admin<input type="password" id="password" required></label>
         <button type="submit" id="btn-login" class="submit">Masuk</button>
       </form>
@@ -67,6 +69,8 @@
           </div>
 
           <hr class="garis">
+          <h3 class="seksi-judul">🔐 Akun Admin</h3>
+          <label>Email Admin<input type="email" id="s-email" placeholder="dausdaba@polikpsorong.ac.id"></label>
           <label>Ganti Password Admin <span class="opsional">(kosongkan jika tidak diubah)</span>
             <input type="password" id="s-password" placeholder="Password baru (min. 6 karakter)">
           </label>

@@ -7,6 +7,7 @@
 
   const $ = function (id) { return document.getElementById(id); };
   let password = sessionStorage.getItem("pjlp_admin_pw") || "";
+  let email = sessionStorage.getItem("pjlp_admin_email") || "";
   let semuaPerangkat = [];
   let filterAktif = "semua";
 
@@ -15,12 +16,16 @@
     ev.preventDefault();
     if (API.belumDikonfigurasi()) { $("login-pesan").textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; return; }
     const pw = $("password").value;
+    const em = $("l-email").value.trim();
     const btn = $("btn-login"); btn.disabled = true; btn.textContent = "Memeriksa...";
     $("login-pesan").textContent = "";
-    API.post({ action: "adminLogin", password: pw, deviceId: "" })
+    API.post({ action: "adminLogin", email: em, password: pw, deviceId: "" })
       .then(function (res) {
-        if (res.status === "success") { password = pw; sessionStorage.setItem("pjlp_admin_pw", pw); masukDashboard(); }
-        else $("login-pesan").textContent = res.message || "Login gagal.";
+        if (res.status === "success") {
+          password = pw; email = em;
+          sessionStorage.setItem("pjlp_admin_pw", pw); sessionStorage.setItem("pjlp_admin_email", em);
+          masukDashboard();
+        } else $("login-pesan").textContent = res.message || "Login gagal.";
       })
       .catch(function (err) { $("login-pesan").textContent = "Gagal: " + err.message; })
       .finally(function () { btn.disabled = false; btn.textContent = "Masuk"; });
@@ -32,14 +37,14 @@
     $("seksi-login").classList.add("hidden"); $("seksi-dashboard").classList.remove("hidden"); muatData();
   }
   function keluar() {
-    sessionStorage.removeItem("pjlp_admin_pw"); password = "";
+    sessionStorage.removeItem("pjlp_admin_pw"); sessionStorage.removeItem("pjlp_admin_email"); password = ""; email = "";
     $("seksi-dashboard").classList.add("hidden"); $("seksi-login").classList.remove("hidden");
     $("login-pesan").textContent = "Sesi berakhir, masuk lagi.";
   }
 
   function muatData() {
     $("perangkat-info").textContent = "Memuat...";
-    API.post({ action: "adminData", password: password, deviceId: "" })
+    API.post({ action: "adminData", email: email, password: password, deviceId: "" })
       .then(function (res) {
         if (res.status !== "success") { if (/password/i.test(res.message || "")) keluar(); $("perangkat-info").textContent = res.message || "Gagal."; return; }
         const s = res.pengaturan || {};
@@ -49,6 +54,7 @@
         $("s-jam-masuk").value = s.jamMasuk || ""; $("s-jam-pulang").value = s.jamPulang || "";
         $("s-buffer-masuk").value = (s.bufferMasuk !== undefined && s.bufferMasuk !== "") ? s.bufferMasuk : "";
         $("s-buffer-pulang").value = (s.bufferPulang !== undefined && s.bufferPulang !== "") ? s.bufferPulang : "";
+        $("s-email").value = s.adminEmail || "";
         semuaPerangkat = res.perangkat || [];
         render();
       })
@@ -81,7 +87,7 @@
     else kirim({ action: "setStatusPerangkat", deviceId: id, statusBaru: act });
   });
   function kirim(payload) {
-    payload.password = password;
+    payload.email = email; payload.password = password;
     $("perangkat-info").textContent = "Memproses...";
     API.post(payload).then(function (res) {
       if (res.status === "success") muatData(); else { alert(res.message || "Gagal."); muatData(); }
@@ -116,20 +122,23 @@
     ev.preventDefault();
     const pesan = $("pengaturan-pesan"), btn = $("btn-simpan");
     const pwBaru = $("s-password").value;
+    const emailBaru = $("s-email").value.trim();
     btn.disabled = true; btn.textContent = "Menyimpan...";
     API.post({
-      action: "simpanPengaturan", password: password, deviceId: "",
+      action: "simpanPengaturan", email: email, password: password, deviceId: "",
       namaInstansi: $("s-instansi").value.trim(),
       lat: $("s-lat").value.trim(), lng: $("s-lng").value.trim(), radius: $("s-radius").value.trim(),
       abaikanLokasi: $("s-abaikan").checked,
       jamMasuk: $("s-jam-masuk").value.trim(), jamPulang: $("s-jam-pulang").value.trim(),
       bufferMasuk: $("s-buffer-masuk").value.trim(), bufferPulang: $("s-buffer-pulang").value.trim(),
-      passwordBaru: pwBaru
+      passwordBaru: pwBaru,
+      emailAdminBaru: (emailBaru && emailBaru.toLowerCase() !== email.toLowerCase()) ? emailBaru : ""
     }).then(function (res) {
       pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
       pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
       pesan.classList.remove("hidden");
       if (res.status === "success" && pwBaru) { password = pwBaru; sessionStorage.setItem("pjlp_admin_pw", pwBaru); $("s-password").value = ""; }
+      if (res.status === "success" && emailBaru) { email = emailBaru; sessionStorage.setItem("pjlp_admin_email", emailBaru); }
     }).catch(function (err) {
       pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Pengaturan"; });
@@ -146,5 +155,5 @@
   });
 
   /* ---------- Auto-login ---------- */
-  if (password && !API.belumDikonfigurasi()) masukDashboard();
+  if (password && email && !API.belumDikonfigurasi()) masukDashboard();
 })();
