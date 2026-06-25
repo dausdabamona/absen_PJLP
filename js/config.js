@@ -32,8 +32,10 @@ function getDeviceId() {
 /* ---------- API ---------- */
 const API = {
   belumDikonfigurasi: function () {
+    // URL valid selalu diawali "http". Placeholder yang belum tersisip tidak,
+    // jadi pengecekan ini tidak menyebut teks placeholder (agar tak ikut diganti sed).
     var u = CONFIG.APPS_SCRIPT_URL;
-    return !u || u.indexOf("GANTI") === 0 || u.indexOf("__APPS_SCRIPT_URL__") !== -1;
+    return !u || u.indexOf("http") !== 0;
   },
   post: function (payload) {
     if (payload.deviceId === undefined) payload.deviceId = getDeviceId();
