@@ -88,7 +88,7 @@
       .then(function (res) {
         if (res.status !== "success") throw new Error(res.message || "gagal");
         if (res.jamMasuk && res.jamPulang) {
-          $("info-jam-kerja").textContent = "Jam kerja: masuk " + res.jamMasuk + " • pulang " + res.jamPulang + " (jenis & status otomatis)";
+          $("info-jam-kerja").textContent = "Jam kerja: masuk " + res.jamMasuk + " • pulang " + res.jamPulang + " — sebelum 12.00 = Masuk, 12.00 ke atas = Pulang.";
         }
         if (!res.terdaftar) { tampil("daftar"); return; }
         if (res.deviceStatus === "disetujui") {
@@ -136,7 +136,15 @@
   });
 
   /* ---------- Absen ---------- */
-  $("btn-lokasi").addEventListener("click", function () { ambilLokasi($("status-lokasi"), $("btn-lokasi"), function (l) { lokasiAbsen = l; }); });
+  // Jenis ditentukan otomatis: sebelum 12.00 = Masuk, 12.00 ke atas = Pulang.
+  function jenisAbsenSekarang() { return waktuLokal().getHours() < 12 ? "Masuk" : "Pulang"; }
+  function tampilkanTombolAbsen() {
+    const btn = $("btn-submit"), hint = $("absen-hint");
+    if (!lokasiAbsen) { btn.classList.add("hidden"); hint.classList.remove("hidden"); return; }
+    btn.textContent = "Kirim Absen " + jenisAbsenSekarang();
+    btn.classList.remove("hidden"); hint.classList.add("hidden");
+  }
+  $("btn-lokasi").addEventListener("click", function () { ambilLokasi($("status-lokasi"), $("btn-lokasi"), function (l) { lokasiAbsen = l; tampilkanTombolAbsen(); }); });
   $("form-absen").addEventListener("submit", function (ev) {
     ev.preventDefault();
     const btn = $("btn-submit"); btn.disabled = true; btn.textContent = "Mengirim..."; pesan.classList.add("hidden");
@@ -149,7 +157,7 @@
         } else { tampilkanPesan(res.message || "Gagal mencatat absen.", false); if (res.code && res.code !== "disetujui") cekStatus(); }
       })
       .catch(function (err) { tampilkanPesan("Gagal mengirim: " + err.message, false); })
-      .finally(function () { btn.disabled = false; btn.textContent = "Kirim Absen"; });
+      .finally(function () { btn.disabled = false; tampilkanTombolAbsen(); });
   });
 
   /* ---------- Jurnal ---------- */

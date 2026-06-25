@@ -231,9 +231,8 @@ function cekAdmin(data) {
 function parseJamMenit(j) { const m = String(j).match(/^(\d{1,2}):(\d{2})$/); return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null; }
 function menitSekarang(now) { return parseInt(fmt(now, "H"), 10) * 60 + parseInt(fmt(now, "m"), 10); }
 function jenisOtomatis(now, set) {
-  const masuk = parseJamMenit(set.jamMasuk) || parseJamMenit(DEFAULT_JAM_MASUK);
-  const pulang = parseJamMenit(set.jamPulang) || parseJamMenit(DEFAULT_JAM_PULANG);
-  return menitSekarang(now) <= (masuk + pulang) / 2 ? "Masuk" : "Pulang";
+  // Patokan tengah hari: sebelum 12.00 = Masuk, 12.00 ke atas = Pulang.
+  return menitSekarang(now) < 720 ? "Masuk" : "Pulang";
 }
 function hitungStatusWaktu(now, jenis, set) {
   const skg = menitSekarang(now);
