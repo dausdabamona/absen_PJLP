@@ -8,6 +8,12 @@
 (function () {
   "use strict";
 
+  // Laptop/desktop -> panel admin otomatis; HP/tablet -> halaman absen PJLP.
+  // Tambah "?absen=1" pada URL untuk membuka halaman absen di laptop (paksa).
+  var ua = navigator.userAgent || "";
+  var mobile = /Android|iPhone|iPad|iPod|Windows Phone|webOS|BlackBerry|Opera Mini|IEMobile|Mobile/i.test(ua);
+  if (!mobile && location.search.indexOf("absen") === -1) { location.replace("admin.html"); return; }
+
   const $ = function (id) { return document.getElementById(id); };
   const deviceId = getDeviceId();
 
