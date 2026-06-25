@@ -6,7 +6,7 @@
    ============================================================ */
 
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz5SSkbi0MODJJHpUjbLYa-B-uPOnfGzl5RD0C1i4UP7Pz8nUuFvv0hApT-Q2RHbYHh/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxMlSeBJ4dhEjP_K5_jrm2qB8clo1EmauZRspVjsBBcQoQYVAwgHmXBYyX5NzUJyIdQ/exec",
 
   OFFSET_JAM: 9,
   LABEL_ZONA: "WIT",
