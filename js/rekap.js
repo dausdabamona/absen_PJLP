@@ -1,6 +1,7 @@
 /* ============================================================
-   Rekap (rekap.html) — KHUSUS ADMIN. Wajib login admin dulu,
-   lalu menampilkan data semua perangkat.
+   Rekap (rekap.html) — terbuka untuk semua. Tanpa password hanya
+   menampilkan absen perangkat ini (difilter server-side per Device
+   ID). Admin isi password untuk melihat semua perangkat.
    ============================================================ */
 
 (function () {
@@ -11,9 +12,6 @@
 
   let mode = "absensi";
   let semuaData = [];
-  // Sesi admin (berbagi dengan panel admin agar tidak perlu login dua kali)
-  let password = sessionStorage.getItem("pjlp_admin_pw") || "";
-  let email = sessionStorage.getItem("pjlp_admin_email") || "";
 
   const KOLOM = {
     absensi: [
@@ -82,10 +80,10 @@
   function muatData() {
     if (API.belumDikonfigurasi()) { info.textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; info.className = "status err"; return; }
     info.textContent = "Memuat data..."; info.className = "status muted";
-    API.post({ action: ACTION[mode], adminPassword: password })
+    API.post({ action: ACTION[mode], adminPassword: $("f-admin").value })
       .then(function (res) {
         if (res.status === "success") {
-          if (res.isAdmin === false) { keluar("Sesi berakhir, masuk lagi."); return; }
+          $("badge-admin").classList.toggle("hidden", !res.isAdmin);
           semuaData = res.data || [];
           terapkanFilter();
         } else { info.textContent = "Gagal memuat: " + (res.message || "kesalahan"); info.className = "status err"; }
@@ -117,41 +115,7 @@
   $("f-nama").addEventListener("input", terapkanFilter);
   $("f-dari").addEventListener("change", terapkanFilter);
   $("f-sampai").addEventListener("change", terapkanFilter);
+  $("f-admin").addEventListener("change", muatData);
 
-  /* ---------- Gerbang login admin ---------- */
-  function masukRekap() {
-    $("seksi-login").classList.add("hidden");
-    $("seksi-rekap").classList.remove("hidden");
-    muatData();
-  }
-  function keluar(pesan) {
-    sessionStorage.removeItem("pjlp_admin_pw"); sessionStorage.removeItem("pjlp_admin_email");
-    password = ""; email = "";
-    $("seksi-rekap").classList.add("hidden");
-    $("seksi-login").classList.remove("hidden");
-    if (pesan) $("login-pesan").textContent = pesan;
-  }
-
-  $("form-login").addEventListener("submit", function (ev) {
-    ev.preventDefault();
-    if (API.belumDikonfigurasi()) { $("login-pesan").textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; return; }
-    const pw = $("l-password").value, em = $("l-email").value.trim();
-    const btn = $("btn-login"); btn.disabled = true; btn.textContent = "Memeriksa...";
-    $("login-pesan").textContent = "";
-    API.post({ action: "adminLogin", email: em, password: pw, deviceId: "" })
-      .then(function (res) {
-        if (res.status === "success") {
-          password = pw; email = em;
-          sessionStorage.setItem("pjlp_admin_pw", pw); sessionStorage.setItem("pjlp_admin_email", em);
-          masukRekap();
-        } else $("login-pesan").textContent = res.message || "Login gagal.";
-      })
-      .catch(function (err) { $("login-pesan").textContent = "Gagal: " + err.message; })
-      .then(function () { btn.disabled = false; btn.textContent = "Masuk"; });
-  });
-
-  $("btn-keluar").addEventListener("click", function () { keluar(""); });
-
-  /* ---------- Auto-login bila sudah login di sesi ini ---------- */
-  if (password && email && !API.belumDikonfigurasi()) masukRekap();
+  muatData();
 })();

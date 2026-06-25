@@ -20,23 +20,9 @@
       <a class="link-rekap" href="index.html?absen=1">&larr; Absen</a>
     </header>
 
-    <!-- Gerbang login: Rekap khusus admin -->
-    <main id="seksi-login" class="card">
-      <h2 class="seksi-judul">Masuk Admin</h2>
-      <p class="seksi-info">Halaman rekap hanya dapat dibuka oleh admin terdaftar.</p>
-      <form id="form-login" autocomplete="off">
-        <label>Email Admin<input type="email" id="l-email" placeholder="dausdaba@polikpsorong.ac.id" required></label>
-        <label>Password Admin<input type="password" id="l-password" required></label>
-        <button type="submit" id="btn-login" class="submit">Masuk</button>
-      </form>
-      <div id="login-pesan" class="status err"></div>
-    </main>
-
-    <main id="seksi-rekap" class="card hidden">
-      <div class="topbar-mini">
-        <div id="badge-admin" class="info-jam">👑 Mode admin: menampilkan data semua perangkat.</div>
-        <button type="button" id="btn-keluar" class="mini">Keluar</button>
-      </div>
+    <main class="card">
+      <div id="badge-admin" class="info-jam hidden">👑 Mode admin: menampilkan data semua perangkat.</div>
+      <p class="seksi-info">Tanpa password hanya menampilkan absen dari perangkat ini. Admin isi password untuk melihat semua.</p>
 
       <div class="tab-status">
         <button class="tab aktif" data-mode="absensi">Absensi</button>
@@ -48,6 +34,7 @@
         <label>Cari Nama<input type="text" id="f-nama" placeholder="Ketik nama..."></label>
         <label>Dari Tanggal<input type="date" id="f-dari"></label>
         <label>Sampai Tanggal<input type="date" id="f-sampai"></label>
+        <label>Password Admin <span class="opsional">(untuk lihat semua)</span><input type="password" id="f-admin"></label>
         <div class="filter-actions">
           <button type="button" id="btn-refresh" class="mini">↻ Muat Ulang</button>
           <button type="button" id="btn-ekspor" class="mini primary">⬇ Ekspor CSV</button>

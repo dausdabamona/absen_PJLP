@@ -51,6 +51,7 @@ function setup() {
   getSheetJurnal();
   getSheetIzin();
   getSheetPerangkat();
+  perbaikiHeader();
   const p = props();
   if (!p.getProperty("ADMIN_EMAIL")) p.setProperty("ADMIN_EMAIL", "dausdaba@polikpsorong.ac.id");
   if (!p.getProperty("ADMIN_PASSWORD")) p.setProperty("ADMIN_PASSWORD", "admin123");
@@ -74,9 +75,9 @@ function doPost(e) {
       case "absen":              return absen(data);
       case "jurnal":             return jurnal(data);
       case "izin":               return izin(data);
-      case "rekapAbsensi":       return rekapData(data, SHEET_ABSEN);
-      case "rekapJurnal":        return rekapData(data, SHEET_JURNAL);
-      case "rekapIzin":          return rekapData(data, SHEET_IZIN);
+      case "rekapAbsensi":       return rekapData(data, SHEET_ABSEN, HEADER_ABSEN);
+      case "rekapJurnal":        return rekapData(data, SHEET_JURNAL, HEADER_JURNAL);
+      case "rekapIzin":          return rekapData(data, SHEET_IZIN, HEADER_IZIN);
       case "adminLogin":         return adminLogin(data);
       case "adminData":          return adminData(data);
       case "setStatusPerangkat": return setStatusPerangkat(data);
@@ -183,18 +184,18 @@ function izin(data) {
 }
 
 /* ====================== REKAP =========================== */
-function rekapData(data, namaSheet) {
+function rekapData(data, namaSheet, header) {
   const isAdmin = data.adminPassword && data.adminPassword === getAdminPassword();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(namaSheet);
   if (!sheet) return jsonOutput({ status: "success", data: [], isAdmin: !!isAdmin });
   const values = sheet.getDataRange().getValues();
   if (values.length < 2) return jsonOutput({ status: "success", data: [], isAdmin: !!isAdmin });
-  const headers = values.shift();
-  const idxDev = headers.indexOf("Device ID");
+  values.shift(); // buang baris header di sheet; nama kolom diambil dari konstanta (header) agar selalu cocok dgn urutan tulis
+  const idxDev = header.indexOf("Device ID");
   let rows = isAdmin ? values : values.filter(function (r) { return String(r[idxDev]) === String(data.deviceId); });
   const out = rows.map(function (row) {
     const obj = {};
-    headers.forEach(function (h, i) {
+    header.forEach(function (h, i) {
       let v = row[i];
       if (v instanceof Date) { v = (h === "Tanggal") ? fmt(v, "yyyy-MM-dd") : (h === "Jam") ? fmt(v, "HH:mm:ss") : fmt(v, "yyyy-MM-dd HH:mm:ss"); }
       obj[h] = v;
@@ -337,6 +338,17 @@ function listPerangkat() {
   return getDataPerangkat().map(function (d) {
     return { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
   });
+}
+
+function perbaikiHeader() {
+  // Menulis ulang baris-1 (header) agar cocok dengan urutan data yang ditulis kode.
+  // Berguna untuk sheet lama yang headernya dibuat di versi sebelumnya.
+  [[SHEET_ABSEN, HEADER_ABSEN], [SHEET_JURNAL, HEADER_JURNAL], [SHEET_IZIN, HEADER_IZIN], [SHEET_PERANGKAT, HEADER_PERANGKAT]]
+    .forEach(function (pair) {
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(pair[0]);
+      if (!sheet) return;
+      sheet.getRange(1, 1, 1, pair[1].length).setValues([pair[1]]).setFontWeight("bold");
+    });
 }
 
 function getSheetAbsen() { return getOrCreateSheet(SHEET_ABSEN, HEADER_ABSEN); }
