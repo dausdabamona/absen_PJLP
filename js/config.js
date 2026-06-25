@@ -1,12 +1,15 @@
 /* ============================================================
    KONFIGURASI APLIKASI ABSENSI PJLP
    ------------------------------------------------------------
-   Cukup isi APPS_SCRIPT_URL (URL Web App Apps Script, /exec).
+   URL backend TIDAK disimpan di sini (rahasia). Nilai di bawah
+   ("__APPS_SCRIPT_URL__") adalah placeholder yang otomatis
+   diganti oleh GitHub Actions saat deploy, diambil dari
+   GitHub Secret bernama APPS_SCRIPT_URL.
    Tanpa login: identitas menempel pada perangkat (HP) ini.
    ============================================================ */
 
 const CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxI8r2JFYZhXLR575K51M8Ft9ZOB0-jEZECPc6efBpn6hv05cpMrzSM60pN8B8qZSF4/exec",
+  APPS_SCRIPT_URL: "__APPS_SCRIPT_URL__",
 
   OFFSET_JAM: 9,
   LABEL_ZONA: "WIT",
@@ -28,7 +31,10 @@ function getDeviceId() {
 
 /* ---------- API ---------- */
 const API = {
-  belumDikonfigurasi: function () { return CONFIG.APPS_SCRIPT_URL.indexOf("GANTI") === 0; },
+  belumDikonfigurasi: function () {
+    var u = CONFIG.APPS_SCRIPT_URL;
+    return !u || u.indexOf("GANTI") === 0 || u.indexOf("__APPS_SCRIPT_URL__") !== -1;
+  },
   post: function (payload) {
     if (payload.deviceId === undefined) payload.deviceId = getDeviceId();
     return fetch(CONFIG.APPS_SCRIPT_URL, {
