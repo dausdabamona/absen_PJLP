@@ -149,7 +149,7 @@ function jurnal(data) {
 
 /* ====================== REKAP =========================== */
 function rekapData(data, namaSheet) {
-  const isAdmin = data.adminPassword && data.adminPassword === props().getProperty("ADMIN_PASSWORD");
+  const isAdmin = data.adminPassword && data.adminPassword === getAdminPassword();
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(namaSheet);
   if (!sheet) return jsonOutput({ status: "success", data: [], isAdmin: !!isAdmin });
   const values = sheet.getDataRange().getValues();
@@ -217,9 +217,14 @@ function simpanPengaturan(data) {
   return jsonOutput({ status: "success", message: "Pengaturan disimpan." });
 }
 
+function getAdminPassword() {
+  // Default "admin123" walau setup belum dijalankan, agar admin selalu bisa masuk.
+  let pw = props().getProperty("ADMIN_PASSWORD");
+  if (!pw) { pw = "admin123"; props().setProperty("ADMIN_PASSWORD", pw); }
+  return pw;
+}
 function cekAdmin(data) {
-  const pw = props().getProperty("ADMIN_PASSWORD");
-  return pw && data.password && String(data.password) === pw;
+  return data.password !== undefined && String(data.password) === getAdminPassword();
 }
 
 /* ====================== JAM KERJA ======================= */
