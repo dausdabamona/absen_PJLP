@@ -18,8 +18,11 @@
 const TZ = "GMT+9"; // WIT
 const SHEET_ABSEN = "Absensi";
 const SHEET_JURNAL = "Jurnal";
+const SHEET_IZIN = "Ketidakhadiran";
 const SHEET_PERANGKAT = "Perangkat";
 const FOLDER_NAME = "Foto Jurnal PJLP";
+
+const JENIS_IZIN = ["Izin", "Sakit", "Cuti", "Dinas Luar", "Lainnya"];
 
 const HEADER_ABSEN = [
   "Timestamp", "Device ID", "Nama", "NIP/ID", "Jenis", "Status Waktu", "Tanggal", "Jam",
@@ -28,6 +31,10 @@ const HEADER_ABSEN = [
 const HEADER_JURNAL = [
   "Timestamp", "Device ID", "Nama", "NIP/ID", "Tanggal", "Jam", "Kegiatan",
   "Foto", "Latitude", "Longitude", "Link Lokasi"
+];
+const HEADER_IZIN = [
+  "Timestamp", "Device ID", "Nama", "NIP/ID", "Jenis", "Tanggal Mulai",
+  "Tanggal Selesai", "Alasan", "Foto Surat"
 ];
 const HEADER_PERANGKAT = [
   "Device ID", "Nama", "NIP/ID", "Status", "Didaftarkan", "Diperbarui"
@@ -42,6 +49,7 @@ const DEFAULT_BUFFER_PULANG = 240;
 function setup() {
   getSheetAbsen();
   getSheetJurnal();
+  getSheetIzin();
   getSheetPerangkat();
   const p = props();
   if (!p.getProperty("ADMIN_PASSWORD")) p.setProperty("ADMIN_PASSWORD", "admin123");
@@ -63,8 +71,10 @@ function doPost(e) {
       case "cekPerangkat":       return cekPerangkat(data);
       case "absen":              return absen(data);
       case "jurnal":             return jurnal(data);
+      case "izin":               return izin(data);
       case "rekapAbsensi":       return rekapData(data, SHEET_ABSEN);
       case "rekapJurnal":        return rekapData(data, SHEET_JURNAL);
+      case "rekapIzin":          return rekapData(data, SHEET_IZIN);
       case "adminLogin":         return adminLogin(data);
       case "adminData":          return adminData(data);
       case "setStatusPerangkat": return setStatusPerangkat(data);
@@ -145,6 +155,25 @@ function jurnal(data) {
     String(data.kegiatan).trim(), fotoUrl, data.lat || "", data.lng || "", linkLok
   ]);
   return jsonOutput({ status: "success", message: "Jurnal kegiatan berhasil disimpan." });
+}
+
+/* ====================== IZIN / TIDAK HADIR ============== */
+function izin(data) {
+  const dev = cariPerangkat(data.deviceId);
+  if (!dev) return jsonOutput({ status: "error", code: "belum_daftar", message: "Perangkat belum terdaftar." });
+  if (dev.status !== "disetujui") return jsonOutput({ status: "error", code: dev.status, message: "Perangkat berstatus '" + dev.status + "'. Hubungi admin." });
+  if (JENIS_IZIN.indexOf(data.jenis) === -1) return jsonOutput({ status: "error", message: "Jenis ketidakhadiran tidak valid." });
+  if (!data.tglMulai) return jsonOutput({ status: "error", message: "Tanggal mulai wajib diisi." });
+  if (!data.alasan || !String(data.alasan).trim()) return jsonOutput({ status: "error", message: "Alasan wajib diisi." });
+  if (!data.foto) return jsonOutput({ status: "error", message: "Foto surat wajib dilampirkan." });
+
+  const now = new Date();
+  const fotoUrl = simpanFoto(data.foto, dev.nama, "surat", now);
+  getSheetIzin().appendRow([
+    now, dev.deviceId, dev.nama, dev.nip, data.jenis,
+    data.tglMulai, data.tglSelesai || data.tglMulai, String(data.alasan).trim(), fotoUrl
+  ]);
+  return jsonOutput({ status: "success", message: "Pengajuan " + data.jenis + " berhasil dikirim." });
 }
 
 /* ====================== REKAP =========================== */
@@ -291,6 +320,7 @@ function listPerangkat() {
 
 function getSheetAbsen() { return getOrCreateSheet(SHEET_ABSEN, HEADER_ABSEN); }
 function getSheetJurnal() { return getOrCreateSheet(SHEET_JURNAL, HEADER_JURNAL); }
+function getSheetIzin() { return getOrCreateSheet(SHEET_IZIN, HEADER_IZIN); }
 function getSheetPerangkat() { return getOrCreateSheet(SHEET_PERANGKAT, HEADER_PERANGKAT); }
 function getOrCreateSheet(nama, header) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();

@@ -64,7 +64,8 @@
 
         <div class="tab-status">
           <button type="button" class="tab aktif" data-pane="pane-absen">Absen</button>
-          <button type="button" class="tab" data-pane="pane-jurnal">Jurnal Kegiatan</button>
+          <button type="button" class="tab" data-pane="pane-jurnal">Jurnal</button>
+          <button type="button" class="tab" data-pane="pane-izin">Izin/Sakit</button>
         </div>
 
         <div id="pane-absen">
@@ -105,6 +106,35 @@
               <div id="j-status-lokasi" class="status muted">Lokasi belum diambil.</div>
             </div>
             <button type="submit" id="btn-j-submit" class="submit">Simpan Jurnal</button>
+          </form>
+        </div>
+
+        <div id="pane-izin" class="hidden">
+          <p class="seksi-info">Ajukan keterangan jika tidak hadir. Wajib melampirkan foto surat.</p>
+          <form id="form-izin" autocomplete="off">
+            <label>Jenis
+              <select id="i-jenis" required>
+                <option value="Izin">Izin</option>
+                <option value="Sakit">Sakit</option>
+                <option value="Cuti">Cuti</option>
+                <option value="Dinas Luar">Dinas Luar</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </label>
+            <div class="grid2">
+              <label>Tanggal Mulai<input type="date" id="i-mulai" required></label>
+              <label>Tanggal Selesai <span class="opsional">(opsional)</span><input type="date" id="i-selesai"></label>
+            </div>
+            <label>Alasan / Keterangan
+              <textarea id="i-alasan" rows="3" placeholder="Jelaskan alasan ketidakhadiran..." required></textarea>
+            </label>
+            <div class="field-group">
+              <div class="field-head"><span>📄 Foto Surat <span class="opsional">(wajib)</span></span></div>
+              <input type="file" id="i-foto" accept="image/*" capture="environment" hidden>
+              <button type="button" id="btn-i-foto" class="photo-btn">Ambil / Pilih Foto Surat</button>
+              <div id="i-preview-wrap" class="preview hidden"><img id="i-preview" alt="Pratinjau surat"></div>
+            </div>
+            <button type="submit" id="btn-i-submit" class="submit">Ajukan</button>
           </form>
         </div>
       </section>

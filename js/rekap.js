@@ -29,9 +29,19 @@
       { judul: "Kegiatan", get: function (r) { return f(r, ["Kegiatan"]); } },
       { judul: "Foto", get: function (r) { return link(f(r, ["Foto"]), "Lihat"); }, raw: function (r) { return f(r, ["Foto"]); } },
       { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } }
+    ],
+    izin: [
+      { judul: "Tanggal", get: function (r) { return tgl(f(r, ["Timestamp"])); } },
+      { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
+      { judul: "Jenis", get: function (r) { return badge(f(r, ["Jenis"])); }, raw: function (r) { return f(r, ["Jenis"]); } },
+      { judul: "Mulai", get: function (r) { return tgl(f(r, ["Tanggal Mulai"])); } },
+      { judul: "Selesai", get: function (r) { return tgl(f(r, ["Tanggal Selesai"])); } },
+      { judul: "Alasan", get: function (r) { return f(r, ["Alasan"]); } },
+      { judul: "Surat", get: function (r) { return link(f(r, ["Foto Surat"]), "Lihat"); }, raw: function (r) { return f(r, ["Foto Surat"]); } }
     ]
   };
-  const HTML_COLS = { "Jenis": 1, "Lokasi": 1, "Foto": 1 };
+  const ACTION = { absensi: "rekapAbsensi", jurnal: "rekapJurnal", izin: "rekapIzin" };
+  const HTML_COLS = { "Jenis": 1, "Lokasi": 1, "Foto": 1, "Surat": 1 };
 
   function tgl(v) { return v ? String(v).substring(0, 10) : ""; }
   function f(row, kandidat) { for (var i = 0; i < kandidat.length; i++) { var k = kandidat[i]; if (row[k] !== undefined && row[k] !== "") return String(row[k]); } return ""; }
@@ -55,7 +65,7 @@
   function terapkanFilter() {
     const nama = $("f-nama").value.trim().toLowerCase(), dari = $("f-dari").value, sampai = $("f-sampai").value;
     const hasil = semuaData.filter(function (row) {
-      const rNama = f(row, ["Nama"]).toLowerCase(), rTgl = tgl(f(row, ["Tanggal"]));
+      const rNama = f(row, ["Nama"]).toLowerCase(), rTgl = tgl(f(row, ["Tanggal", "Tanggal Mulai", "Timestamp"]));
       if (nama && rNama.indexOf(nama) === -1) return false;
       if (dari && rTgl < dari) return false;
       if (sampai && rTgl > sampai) return false;
@@ -67,7 +77,7 @@
   function muatData() {
     if (API.belumDikonfigurasi()) { info.textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; info.className = "status err"; return; }
     info.textContent = "Memuat data..."; info.className = "status muted";
-    API.post({ action: mode === "jurnal" ? "rekapJurnal" : "rekapAbsensi", adminPassword: $("f-admin").value })
+    API.post({ action: ACTION[mode], adminPassword: $("f-admin").value })
       .then(function (res) {
         if (res.status === "success") {
           $("badge-admin").classList.toggle("hidden", !res.isAdmin);

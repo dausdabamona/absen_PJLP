@@ -123,14 +123,14 @@
   $("btn-cek-ulang").addEventListener("click", cekStatus);
   $("btn-cek-ulang2").addEventListener("click", cekStatus);
 
-  /* ---------- Tab Absen / Jurnal ---------- */
+  /* ---------- Tab Absen / Jurnal / Izin ---------- */
+  const PANES = ["pane-absen", "pane-jurnal", "pane-izin"];
   document.querySelectorAll("#seksi-absen .tab").forEach(function (t) {
     t.addEventListener("click", function () {
       document.querySelectorAll("#seksi-absen .tab").forEach(function (x) { x.classList.remove("aktif"); });
       t.classList.add("aktif");
       const pane = t.getAttribute("data-pane");
-      $("pane-absen").classList.toggle("hidden", pane !== "pane-absen");
-      $("pane-jurnal").classList.toggle("hidden", pane !== "pane-jurnal");
+      PANES.forEach(function (p) { $(p).classList.toggle("hidden", p !== pane); });
       pesan.classList.add("hidden");
     });
   });
@@ -193,6 +193,44 @@
       })
       .catch(function (err) { tampilkanPesan("Gagal mengirim: " + err.message, false); })
       .finally(function () { btn.disabled = false; btn.textContent = "Simpan Jurnal"; });
+  });
+
+  /* ---------- Izin / Tidak Hadir ---------- */
+  let fotoIzin = null;
+  const inputIFoto = $("i-foto");
+  $("btn-i-foto").addEventListener("click", function () { inputIFoto.click(); });
+  inputIFoto.addEventListener("change", function () {
+    const file = inputIFoto.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      kompresGambar(e.target.result, 1200, 0.7, function (dataUrl) {
+        fotoIzin = dataUrl; $("i-preview").src = dataUrl;
+        $("i-preview-wrap").classList.remove("hidden"); $("btn-i-foto").textContent = "Ganti Foto Surat";
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+  $("form-izin").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    const alasan = $("i-alasan").value.trim();
+    if (!$("i-mulai").value) { tampilkanPesan("Tanggal mulai wajib diisi.", false); return; }
+    if (!alasan) { tampilkanPesan("Alasan wajib diisi.", false); return; }
+    if (!fotoIzin) { tampilkanPesan("Foto surat wajib dilampirkan.", false); return; }
+    const btn = $("btn-i-submit"); btn.disabled = true; btn.textContent = "Mengirim..."; pesan.classList.add("hidden");
+    API.post({
+      action: "izin", jenis: $("i-jenis").value,
+      tglMulai: $("i-mulai").value, tglSelesai: $("i-selesai").value,
+      alasan: alasan, foto: fotoIzin
+    })
+      .then(function (res) {
+        if (res.status === "success") {
+          tampilkanPesan("✔ " + res.message, true);
+          fotoIzin = null; $("i-alasan").value = ""; $("i-selesai").value = "";
+          $("i-preview-wrap").classList.add("hidden"); $("btn-i-foto").textContent = "Ambil / Pilih Foto Surat";
+        } else { tampilkanPesan(res.message || "Gagal mengajukan.", false); if (res.code && res.code !== "disetujui") cekStatus(); }
+      })
+      .catch(function (err) { tampilkanPesan("Gagal mengirim: " + err.message, false); })
+      .finally(function () { btn.disabled = false; btn.textContent = "Ajukan"; });
   });
 
   /* ---------- Pengingat jurnal ---------- */
