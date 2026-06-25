@@ -311,3 +311,25 @@ td a { color: var(--primary); }
   font-weight: 600;
   margin-bottom: 12px;
 }
+
+/* Badge Work from Anywhere (hari Jumat) */
+.badge-wfa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #16a34a, #059669);
+  color: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.35);
+  animation: wfaPop 0.4s ease;
+}
+.badge-wfa .wfa-emoji { font-size: 30px; line-height: 1; }
+.badge-wfa .wfa-text { display: flex; flex-direction: column; }
+.badge-wfa .wfa-text strong { font-size: 16px; letter-spacing: 0.3px; }
+.badge-wfa .wfa-text small { font-size: 12px; opacity: 0.92; margin-top: 2px; }
+@keyframes wfaPop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
