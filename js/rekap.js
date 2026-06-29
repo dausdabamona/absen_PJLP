@@ -66,15 +66,20 @@
   }
 
   function terapkanFilter() {
-    const nama = $("f-nama").value.trim().toLowerCase(), dari = $("f-dari").value, sampai = $("f-sampai").value;
+    const bulan = $("f-bulan").value; // "YYYY-MM" atau "" (semua)
     const hasil = semuaData.filter(function (row) {
-      const rNama = f(row, ["Nama"]).toLowerCase(), rTgl = tgl(f(row, ["Tanggal", "Tanggal Mulai", "Timestamp"]));
-      if (nama && rNama.indexOf(nama) === -1) return false;
-      if (dari && rTgl < dari) return false;
-      if (sampai && rTgl > sampai) return false;
-      return true;
+      if (!bulan) return true;
+      const rTgl = tgl(f(row, ["Tanggal", "Tanggal Mulai", "Timestamp"]));
+      return rTgl.indexOf(bulan) === 0; // tanggal "YYYY-MM-DD" diawali "YYYY-MM"
     });
     render(hasil); return hasil;
+  }
+
+  function bulanIni() {
+    const n = new Date();
+    const lokal = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + (CONFIG.OFFSET_JAM || 0) * 3600000);
+    const m = lokal.getMonth() + 1;
+    return lokal.getFullYear() + "-" + (m < 10 ? "0" + m : m);
   }
 
   function muatData() {
@@ -112,10 +117,9 @@
   });
   $("btn-refresh").addEventListener("click", muatData);
   $("btn-ekspor").addEventListener("click", eksporCSV);
-  $("f-nama").addEventListener("input", terapkanFilter);
-  $("f-dari").addEventListener("change", terapkanFilter);
-  $("f-sampai").addEventListener("change", terapkanFilter);
+  $("f-bulan").addEventListener("change", terapkanFilter);
   $("f-admin").addEventListener("change", muatData);
 
+  $("f-bulan").value = bulanIni(); // default: bulan berjalan
   muatData();
 })();
