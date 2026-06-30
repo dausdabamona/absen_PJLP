@@ -1,7 +1,9 @@
 /* ============================================================
    Rekap (rekap.html) — terbuka untuk semua. Tanpa password hanya
-   menampilkan absen perangkat ini (difilter server-side per Device
-   ID). Admin isi password untuk melihat semua perangkat.
+   menampilkan absen perangkat ini. Admin isi password untuk semua.
+
+   Catatan: data dinormalisasi berdasarkan ISI tiap sel (bukan label
+   header), sehingga kolom tetap benar walau header Sheet bergeser.
    ============================================================ */
 
 (function () {
@@ -10,106 +12,217 @@
   const $ = function (id) { return document.getElementById(id); };
   const info = $("info"), theadRow = $("thead-row"), tbody = $("tbody");
 
-  let mode = "absensi";
-  let semuaData = [];
+  let mode = "ringkasan";
+  let absRows = [], izinRows = [], jurnalRows = [];
 
+  /* ---------- util ---------- */
+  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function tgl(v) { return v ? String(v).substring(0, 10) : ""; }
+  function link(url, teks) { return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + teks + "</a>" : "-"; }
+  function nilaiBaris(row) { var o = []; for (var k in row) { if (Object.prototype.hasOwnProperty.call(row, k)) o.push(row[k]); } return o; }
+  function badge(j) {
+    if (!j) return "";
+    var t = j.toLowerCase(), cls = "masuk";
+    if (t.indexOf("pulang") === 0) cls = "pulang";
+    else if (t.indexOf("sakit") === 0) cls = "sakit";
+    else if (t.indexOf("izin") === 0) cls = "izin";
+    else if (t.indexOf("cuti") === 0) cls = "cuti";
+    return '<span class="badge ' + cls + '">' + esc(j) + "</span>";
+  }
+  function angkaWarna(n, kelas) { n = parseInt(n, 10) || 0; return n > 0 ? '<span class="' + kelas + '">' + n + "</span>" : '<span class="mnt-ok">0</span>'; }
+
+  /* ---------- normalisasi berbasis isi ---------- */
+  function normAbsen(row) {
+    var o = { tanggal: "", jam: "", nama: "", nip: "", deviceId: "", jenis: "", status: "", terlambat: 0, cepat: 0, link: "", ket: "" };
+    nilaiBaris(row).forEach(function (v) {
+      var s = (v == null ? "" : String(v)).trim();
+      if (!s) return;
+      if (/^https?:\/\//i.test(s)) { if (!o.link) o.link = s; return; }
+      var mTl = /Terlambat\s+(\d+)\s*menit/i.exec(s); if (mTl) { o.status = s; o.terlambat = parseInt(mTl[1], 10); return; }
+      var mPc = /Pulang\s*Cepat\s+(\d+)\s*menit/i.exec(s); if (mPc) { o.status = s; o.cepat = parseInt(mPc[1], 10); return; }
+      if (/Tepat\s*Waktu/i.test(s)) { o.status = s; return; }
+      if (/^(masuk|pulang)$/i.test(s)) { o.jenis = s; return; }
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) { if (!o.tanggal) o.tanggal = s.substring(0, 10); var tm = /(\d{1,2}:\d{2}(:\d{2})?)/.exec(s); if (tm && !o.jam) o.jam = tm[1]; return; }
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) { if (!o.jam) o.jam = s; return; }
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(s)) { if (!o.deviceId) o.deviceId = s; return; }
+      if (/^[-+]?\d{1,3}\.\d+$/.test(s)) return; // koordinat lat/lng
+      if (/^\d{4,}$/.test(s)) { if (!o.nip) o.nip = s; return; }      // NIP
+      if (/^\[.*\]$/.test(s)) { o.ket = o.ket ? o.ket + " " + s : s; return; }
+      if (/[a-zA-Z]/.test(s)) { if (!o.nama) o.nama = s; else o.ket = o.ket ? o.ket + " " + s : s; }
+    });
+    return o;
+  }
+
+  function normIzin(row) {
+    var o = { tanggal: "", nama: "", nip: "", jenis: "", mulai: "", selesai: "", alasan: "", link: "" };
+    var tanggal = [];
+    nilaiBaris(row).forEach(function (v) {
+      var s = (v == null ? "" : String(v)).trim();
+      if (!s) return;
+      if (/^https?:\/\//i.test(s)) { if (!o.link) o.link = s; return; }
+      if (/^(sakit|izin|cuti)$/i.test(s)) { o.jenis = s; return; }
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) { tanggal.push(s.substring(0, 10)); return; }
+      if (/^\d{4,}$/.test(s)) { if (!o.nip) o.nip = s; return; }
+      if (/[a-zA-Z]/.test(s)) { if (!o.nama) o.nama = s; else if (!o.alasan) o.alasan = s; }
+    });
+    o.tanggal = tanggal[0] || ""; o.mulai = tanggal[1] || tanggal[0] || ""; o.selesai = tanggal[2] || tanggal[1] || "";
+    return o;
+  }
+
+  /* ---------- kolom tabel detail ---------- */
   const KOLOM = {
     absensi: [
-      { judul: "Tanggal", get: function (r) { return tgl(r["Tanggal"]); } },
-      { judul: "Jam", get: function (r) { return f(r, ["Jam"]); } },
-      { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
-      { judul: "Jenis", get: function (r) { return badge(f(r, ["Jenis"])); }, raw: function (r) { return f(r, ["Jenis"]); } },
-      { judul: "Status Waktu", get: function (r) { return f(r, ["Status Waktu"]); } },
-      { judul: "Terlambat (mnt)", get: function (r) { return menitTerlambat(f(r, ["Status Waktu"])); }, raw: function (r) { return menitTerlambat(f(r, ["Status Waktu"])); } },
-      { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } },
-      { judul: "Keterangan", get: function (r) { return f(r, ["Keterangan"]); } }
-    ],
-    jurnal: [
-      { judul: "Tanggal", get: function (r) { return tgl(r["Tanggal"]); } },
-      { judul: "Jam", get: function (r) { return f(r, ["Jam"]); } },
-      { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
-      { judul: "Kegiatan", get: function (r) { return f(r, ["Kegiatan"]); } },
-      { judul: "Foto", get: function (r) { return link(f(r, ["Foto"]), "Lihat"); }, raw: function (r) { return f(r, ["Foto"]); } },
-      { judul: "Lokasi", get: function (r) { return link(f(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return f(r, ["Link Lokasi"]); } }
+      { judul: "Tanggal", get: function (o) { return o.tanggal; } },
+      { judul: "Jam", get: function (o) { return o.jam; } },
+      { judul: "Nama", get: function (o) { return o.nama || o.deviceId; } },
+      { judul: "Jenis", html: true, get: function (o) { return badge(o.jenis); }, raw: function (o) { return o.jenis; } },
+      { judul: "Terlambat (mnt)", html: true, get: function (o) { return angkaWarna(o.terlambat, "mnt-bad"); }, raw: function (o) { return o.terlambat; } },
+      { judul: "Pulang Cepat (mnt)", html: true, get: function (o) { return angkaWarna(o.cepat, "mnt-warn"); }, raw: function (o) { return o.cepat; } },
+      { judul: "Lokasi", html: true, get: function (o) { return link(o.link, "Peta"); }, raw: function (o) { return o.link; } },
+      { judul: "Keterangan", get: function (o) { return o.ket; } }
     ],
     izin: [
-      { judul: "Tanggal", get: function (r) { return tgl(f(r, ["Timestamp"])); } },
-      { judul: "Nama", get: function (r) { return f(r, ["Nama"]); } },
-      { judul: "Jenis", get: function (r) { return badge(f(r, ["Jenis"])); }, raw: function (r) { return f(r, ["Jenis"]); } },
-      { judul: "Mulai", get: function (r) { return tgl(f(r, ["Tanggal Mulai"])); } },
-      { judul: "Selesai", get: function (r) { return tgl(f(r, ["Tanggal Selesai"])); } },
-      { judul: "Alasan", get: function (r) { return f(r, ["Alasan"]); } },
-      { judul: "Surat", get: function (r) { return link(f(r, ["Foto Surat"]), "Lihat"); }, raw: function (r) { return f(r, ["Foto Surat"]); } }
+      { judul: "Tanggal", get: function (o) { return o.tanggal; } },
+      { judul: "Nama", get: function (o) { return o.nama; } },
+      { judul: "Jenis", html: true, get: function (o) { return badge(o.jenis); }, raw: function (o) { return o.jenis; } },
+      { judul: "Mulai", get: function (o) { return o.mulai; } },
+      { judul: "Selesai", get: function (o) { return o.selesai; } },
+      { judul: "Alasan", get: function (o) { return o.alasan; } },
+      { judul: "Surat", html: true, get: function (o) { return link(o.link, "Lihat"); }, raw: function (o) { return o.link; } }
+    ],
+    jurnal: [
+      { judul: "Tanggal", get: function (r) { return tgl(cari(r, ["Tanggal", "Timestamp"])); } },
+      { judul: "Jam", get: function (r) { return cari(r, ["Jam"]); } },
+      { judul: "Nama", get: function (r) { return cari(r, ["Nama"]); } },
+      { judul: "Kegiatan", get: function (r) { return cari(r, ["Kegiatan"]); } },
+      { judul: "Foto", html: true, get: function (r) { return link(cari(r, ["Foto"]), "Lihat"); }, raw: function (r) { return cari(r, ["Foto"]); } },
+      { judul: "Lokasi", html: true, get: function (r) { return link(cari(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return cari(r, ["Link Lokasi"]); } }
     ]
   };
-  const ACTION = { absensi: "rekapAbsensi", jurnal: "rekapJurnal", izin: "rekapIzin" };
-  const HTML_COLS = { "Jenis": 1, "Lokasi": 1, "Foto": 1, "Surat": 1 };
+  function cari(row, kandidat) { for (var i = 0; i < kandidat.length; i++) { var k = kandidat[i]; if (row[k] !== undefined && row[k] !== "") return String(row[k]); } return ""; }
 
-  function tgl(v) { return v ? String(v).substring(0, 10) : ""; }
-  function menitTerlambat(s) { var m = /Terlambat\s+(\d+)/i.exec(s || ""); return m ? m[1] : "0"; }
-  function f(row, kandidat) { for (var i = 0; i < kandidat.length; i++) { var k = kandidat[i]; if (row[k] !== undefined && row[k] !== "") return String(row[k]); } return ""; }
-  function badge(j) { if (!j) return ""; var cls = j.toLowerCase() === "pulang" ? "pulang" : "masuk"; return '<span class="badge ' + cls + '">' + esc(j) + "</span>"; }
-  function link(url, teks) { return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + teks + "</a>" : "-"; }
-  function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  const RINGKASAN_KOL = [
+    { judul: "Nama", get: function (s) { return esc(s.nama); } },
+    { judul: "Hadir", get: function (s) { return s.hadir; } },
+    { judul: "Terlambat (×)", get: function (s) { return s.tlKali; } },
+    { judul: "Total Terlambat (mnt)", get: function (s) { return s.tlMenit > 0 ? '<span class="mnt-bad">' + s.tlMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.tlMenit; } },
+    { judul: "Pulang Cepat (×)", get: function (s) { return s.pcKali; } },
+    { judul: "Total Pulang Cepat (mnt)", get: function (s) { return s.pcMenit > 0 ? '<span class="mnt-warn">' + s.pcMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.pcMenit; } },
+    { judul: "Sakit", get: function (s) { return s.sakit; } },
+    { judul: "Izin", get: function (s) { return s.izin; } },
+    { judul: "Cuti", get: function (s) { return s.cuti; } }
+  ];
 
-  function render(data) {
-    const kolom = KOLOM[mode];
-    theadRow.innerHTML = kolom.map(function (k) { return "<th>" + k.judul + "</th>"; }).join("");
-    if (!data.length) { tbody.innerHTML = ""; info.textContent = "Tidak ada data untuk filter ini."; return; }
-    info.textContent = "Menampilkan " + data.length + " baris.";
-    tbody.innerHTML = data.map(function (row) {
-      return "<tr>" + kolom.map(function (k) {
-        const isi = k.get(row);
-        return HTML_COLS[k.judul] ? "<td>" + isi + "</td>" : "<td>" + esc(isi) + "</td>";
-      }).join("") + "</tr>";
-    }).join("");
-  }
-
-  function terapkanFilter() {
-    const bulan = $("f-bulan").value; // "YYYY-MM" atau "" (semua)
-    const hasil = semuaData.filter(function (row) {
-      if (!bulan) return true;
-      // Timestamp (kolom pertama) paling andal; fallback ke kolom tanggal lain
-      const rTgl = tgl(f(row, ["Timestamp", "Tanggal", "Tanggal Mulai"]));
-      return rTgl.indexOf(bulan) === 0; // tanggal "YYYY-MM-DD" diawali "YYYY-MM"
-    });
-    render(hasil); return hasil;
-  }
-
+  /* ---------- filter bulan ---------- */
   function bulanIni() {
     const n = new Date();
     const lokal = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + (CONFIG.OFFSET_JAM || 0) * 3600000);
     const m = lokal.getMonth() + 1;
     return lokal.getFullYear() + "-" + (m < 10 ? "0" + m : m);
   }
+  function dalamBulan(t) { var b = $("f-bulan").value; return !b || (t || "").indexOf(b) === 0; }
 
+  /* ---------- data terfilter per mode ---------- */
+  function dataDetail() {
+    if (mode === "absensi") return absRows.map(normAbsen).filter(function (o) { return dalamBulan(o.tanggal); });
+    if (mode === "izin") return izinRows.map(normIzin).filter(function (o) { return dalamBulan(o.tanggal || o.mulai); });
+    return jurnalRows.filter(function (r) { return dalamBulan(tgl(cari(r, ["Timestamp", "Tanggal"]))); });
+  }
+
+  function ringkasan() {
+    var peta = {};
+    function ambil(key, nama) {
+      if (!peta[key]) peta[key] = { nama: nama || key, hadir: 0, tlKali: 0, tlMenit: 0, pcKali: 0, pcMenit: 0, sakit: 0, izin: 0, cuti: 0 };
+      if (nama && (peta[key].nama === key || !peta[key].nama)) peta[key].nama = nama;
+      return peta[key];
+    }
+    absRows.map(normAbsen).forEach(function (o) {
+      if (!dalamBulan(o.tanggal)) return;
+      var key = o.nip || o.nama || o.deviceId; if (!key) return;
+      var s = ambil(key, o.nama);
+      if (/masuk/i.test(o.jenis)) s.hadir++;
+      if (o.terlambat > 0) { s.tlKali++; s.tlMenit += o.terlambat; }
+      if (o.cepat > 0) { s.pcKali++; s.pcMenit += o.cepat; }
+    });
+    izinRows.map(normIzin).forEach(function (o) {
+      if (!dalamBulan(o.tanggal || o.mulai)) return;
+      var key = o.nip || o.nama; if (!key) return;
+      var s = ambil(key, o.nama);
+      if (/sakit/i.test(o.jenis)) s.sakit++;
+      else if (/izin/i.test(o.jenis)) s.izin++;
+      else if (/cuti/i.test(o.jenis)) s.cuti++;
+    });
+    var baris = Object.keys(peta).map(function (k) { return peta[k]; });
+    baris.sort(function (a, b) { return (b.tlMenit - a.tlMenit) || (b.pcMenit - a.pcMenit) || a.nama.localeCompare(b.nama); });
+    return baris;
+  }
+
+  /* ---------- render ---------- */
+  function renderTabel(kolom, data, kosong) {
+    theadRow.innerHTML = kolom.map(function (k) { return "<th>" + k.judul + "</th>"; }).join("");
+    if (!data.length) { tbody.innerHTML = ""; info.textContent = kosong; info.className = "status muted"; return; }
+    tbody.innerHTML = data.map(function (row) {
+      return "<tr>" + kolom.map(function (k) {
+        var isi = k.get(row);
+        return k.html ? "<td>" + isi + "</td>" : "<td>" + esc(isi) + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+  }
+
+  function tampilkan() {
+    if (mode === "ringkasan") {
+      var baris = ringkasan();
+      info.textContent = baris.length ? ("Ringkasan " + baris.length + " pegawai." ) : "Tidak ada data untuk bulan ini.";
+      info.className = "status muted";
+      renderTabel(RINGKASAN_KOL, baris, "Tidak ada data untuk bulan ini.");
+      return;
+    }
+    var data = dataDetail();
+    info.textContent = data.length ? ("Menampilkan " + data.length + " baris.") : "Tidak ada data untuk filter ini.";
+    info.className = "status muted";
+    renderTabel(KOLOM[mode], data, "Tidak ada data untuk filter ini.");
+  }
+
+  /* ---------- muat data ---------- */
   function muatData() {
     if (API.belumDikonfigurasi()) { info.textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL)."; info.className = "status err"; return; }
     info.textContent = "Memuat data..."; info.className = "status muted";
-    API.post({ action: ACTION[mode], adminPassword: $("f-admin").value })
-      .then(function (res) {
-        if (res.status === "success") {
-          $("badge-admin").classList.toggle("hidden", !res.isAdmin);
-          semuaData = res.data || [];
-          terapkanFilter();
-        } else { info.textContent = "Gagal memuat: " + (res.message || "kesalahan"); info.className = "status err"; }
+    var pw = $("f-admin").value;
+    var perlu = (mode === "ringkasan") ? ["rekapAbsensi", "rekapIzin"] : [ACTION_TUNGGAL[mode]];
+    Promise.all(perlu.map(function (act) { return API.post({ action: act, adminPassword: pw }); }))
+      .then(function (hasil) {
+        var adminAda = hasil.some(function (r) { return r && r.isAdmin; });
+        $("badge-admin").classList.toggle("hidden", !adminAda);
+        hasil.forEach(function (r, i) {
+          if (!r || r.status !== "success") return;
+          var act = perlu[i];
+          if (act === "rekapAbsensi") absRows = r.data || [];
+          else if (act === "rekapIzin") izinRows = r.data || [];
+          else if (act === "rekapJurnal") jurnalRows = r.data || [];
+        });
+        tampilkan();
       })
       .catch(function (err) { info.textContent = "Gagal memuat data: " + err.message; info.className = "status err"; });
   }
+  const ACTION_TUNGGAL = { absensi: "rekapAbsensi", jurnal: "rekapJurnal", izin: "rekapIzin" };
 
+  /* ---------- ekspor CSV ---------- */
   function eksporCSV() {
-    const data = terapkanFilter();
+    var kolom, data, namaFile;
+    if (mode === "ringkasan") { kolom = RINGKASAN_KOL; data = ringkasan(); namaFile = "ringkasan"; }
+    else { kolom = KOLOM[mode]; data = dataDetail(); namaFile = mode; }
     if (!data.length) { alert("Tidak ada data untuk diekspor."); return; }
-    const kolom = KOLOM[mode];
-    const header = kolom.map(function (k) { return k.judul; });
-    const baris = data.map(function (row) { return kolom.map(function (k) { return k.raw ? k.raw(row) : k.get(row); }); });
-    const csv = [header].concat(baris).map(function (r) { return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(","); }).join("\r\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "rekap-" + mode + "-pjlp.csv"; a.click();
+    var bulan = $("f-bulan").value || "semua";
+    var header = kolom.map(function (k) { return k.judul; });
+    var baris = data.map(function (row) { return kolom.map(function (k) { return k.raw ? k.raw(row) : String(k.get(row)).replace(/<[^>]*>/g, ""); }); });
+    var csv = [header].concat(baris).map(function (r) { return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(","); }).join("\r\n");
+    var blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url; a.download = "rekap-" + namaFile + "-" + bulan + ".csv"; a.click();
     URL.revokeObjectURL(url);
   }
 
+  /* ---------- events ---------- */
   document.querySelectorAll(".tab").forEach(function (t) {
     t.addEventListener("click", function () {
       document.querySelectorAll(".tab").forEach(function (x) { x.classList.remove("aktif"); });
@@ -118,9 +231,9 @@
   });
   $("btn-refresh").addEventListener("click", muatData);
   $("btn-ekspor").addEventListener("click", eksporCSV);
-  $("f-bulan").addEventListener("change", terapkanFilter);
+  $("f-bulan").addEventListener("change", tampilkan);
   $("f-admin").addEventListener("change", muatData);
 
-  $("f-bulan").value = bulanIni(); // default: bulan berjalan
+  $("f-bulan").value = bulanIni();
   muatData();
 })();

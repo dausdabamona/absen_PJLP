@@ -223,13 +223,22 @@ th, td {
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-th { background: #f8fafc; font-weight: 700; color: var(--muted); position: sticky; top: 0; }
-tbody tr:hover { background: #f8fafc; }
+th { background: #eef2f7; font-weight: 700; color: #334155; position: sticky; top: 0; z-index: 1; }
+tbody tr:nth-child(even) { background: #f8fafc; }
+tbody tr:hover { background: #eef6ff; }
 td a { color: var(--primary); }
 .badge { padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
 .badge.masuk { background: #dcfce7; color: var(--success); }
-.badge.pulang { background: #fef3c7; color: #b45309; }
+.badge.pulang { background: #dbeafe; color: #1d4ed8; }
+.badge.sakit { background: #fee2e2; color: var(--danger); }
+.badge.izin { background: #fef3c7; color: #b45309; }
+.badge.cuti { background: #ede9fe; color: #6d28d9; }
 .badge.blok { background: #fee2e2; color: var(--danger); }
+
+/* Angka menit di rekap */
+.mnt-bad { color: #b91c1c; font-weight: 700; }
+.mnt-warn { color: #b45309; font-weight: 700; }
+.mnt-ok { color: #94a3b8; }
 
 /* Seksi & elemen umum tambahan */
 .seksi-judul { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
