@@ -103,14 +103,15 @@
 
   const RINGKASAN_KOL = [
     { judul: "Nama", get: function (s) { return s.nama; } },
-    { judul: "Hadir", get: function (s) { return s.hadir; } },
+    { judul: "Hadir (hari)", get: function (s) { return s.hadir; } },
     { judul: "Terlambat (×)", get: function (s) { return s.tlKali; } },
-    { judul: "Total Terlambat (mnt)", html: true, get: function (s) { return s.tlMenit > 0 ? '<span class="mnt-bad">' + s.tlMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.tlMenit; } },
+    { judul: "Total Terlambat", html: true, get: function (s) { return s.tlMenit > 0 ? '<span class="mnt-bad">' + jamMenit(s.tlMenit) + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.tlMenit; } },
     { judul: "Pulang Cepat (×)", get: function (s) { return s.pcKali; } },
-    { judul: "Total Pulang Cepat (mnt)", html: true, get: function (s) { return s.pcMenit > 0 ? '<span class="mnt-warn">' + s.pcMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.pcMenit; } },
-    { judul: "Sakit", get: function (s) { return s.sakit; } },
-    { judul: "Izin", get: function (s) { return s.izin; } },
-    { judul: "Cuti", get: function (s) { return s.cuti; } }
+    { judul: "Total Pulang Cepat", html: true, get: function (s) { return s.pcMenit > 0 ? '<span class="mnt-warn">' + jamMenit(s.pcMenit) + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.pcMenit; } },
+    { judul: "Sakit (hari)", get: function (s) { return s.sakit; } },
+    { judul: "Izin (hari)", get: function (s) { return s.izin; } },
+    { judul: "Cuti (hari)", get: function (s) { return s.cuti; } },
+    { judul: "Mangkir/Alpa", html: true, get: function (s) { return s.mangkir == null ? "-" : (s.mangkir > 0 ? '<span class="mnt-bad">' + s.mangkir + "</span>" : '<span class="mnt-ok">0</span>'); }, raw: function (s) { return s.mangkir == null ? "" : s.mangkir; } }
   ];
 
   /* ---------- filter bulan ---------- */
@@ -122,6 +123,35 @@
   }
   function dalamBulan(t) { var b = $("f-bulan").value; return !b || (t || "").indexOf(b) === 0; }
 
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function hariIniStr() { var n = new Date(); var l = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + (CONFIG.OFFSET_JAM || 0) * 3600000); return l.getFullYear() + "-" + pad(l.getMonth() + 1) + "-" + pad(l.getDate()); }
+  function jamMenit(m) { m = parseInt(m, 10) || 0; if (m <= 0) return "0"; var j = Math.floor(m / 60), s = m % 60, o = []; if (j) o.push(j + " jam"); if (s) o.push(s + " mnt"); return o.join(" "); }
+  function parseTgl(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return m ? new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)) : null; }
+
+  // Himpunan hari kerja (Sen–Jum, tidak melebihi hari ini) untuk bulan terpilih
+  function hariKerjaBulan(bulan) {
+    if (!bulan) return null;
+    var y = parseInt(bulan.substring(0, 4), 10), m = parseInt(bulan.substring(5, 7), 10);
+    var akhir = new Date(y, m, 0).getDate(), hi = hariIniStr(), set = {};
+    for (var d = 1; d <= akhir; d++) {
+      var dow = new Date(y, m - 1, d).getDay(); if (dow === 0 || dow === 6) continue;
+      var s = y + "-" + pad(m) + "-" + pad(d); if (s > hi) continue;
+      set[s] = true;
+    }
+    return set;
+  }
+  // Daftar tanggal hari kerja dalam rentang [mulai..selesai] yang termasuk himpunan hk
+  function rentangHariKerja(mulai, selesai, hk) {
+    var hasil = [], a = parseTgl(mulai), b = parseTgl(selesai || mulai);
+    if (!a) return hasil; if (!b || b < a) b = a;
+    for (var t = new Date(a); t <= b; t.setDate(t.getDate() + 1)) {
+      var s = t.getFullYear() + "-" + pad(t.getMonth() + 1) + "-" + pad(t.getDate());
+      if (hk) { if (hk[s]) hasil.push(s); }
+      else { var dow = t.getDay(); if (dow !== 0 && dow !== 6) hasil.push(s); }
+    }
+    return hasil;
+  }
+
   /* ---------- data terfilter per mode ---------- */
   function dataDetail() {
     if (mode === "absensi") return absRows.map(normAbsen).filter(function (o) { return dalamBulan(o.tanggal); });
@@ -130,9 +160,10 @@
   }
 
   function ringkasan() {
+    var hk = hariKerjaBulan($("f-bulan").value); // null jika "semua bulan"
     var peta = {};
     function ambil(key, nama) {
-      if (!peta[key]) peta[key] = { nama: nama || key, hadir: 0, tlKali: 0, tlMenit: 0, pcKali: 0, pcMenit: 0, sakit: 0, izin: 0, cuti: 0 };
+      if (!peta[key]) peta[key] = { nama: nama || key, hadirSet: {}, tlKali: 0, tlMenit: 0, pcKali: 0, pcMenit: 0, sakitSet: {}, izinSet: {}, cutiSet: {} };
       if (nama && (peta[key].nama === key || !peta[key].nama)) peta[key].nama = nama;
       return peta[key];
     }
@@ -140,20 +171,32 @@
       if (!dalamBulan(o.tanggal)) return;
       var key = o.nip || o.nama || o.deviceId; if (!key) return;
       var s = ambil(key, o.nama);
-      if (/masuk/i.test(o.jenis)) s.hadir++;
+      if (/masuk/i.test(o.jenis) && o.tanggal) s.hadirSet[o.tanggal] = true;
       if (o.terlambat > 0) { s.tlKali++; s.tlMenit += o.terlambat; }
       if (o.cepat > 0) { s.pcKali++; s.pcMenit += o.cepat; }
     });
     izinRows.map(normIzin).forEach(function (o) {
-      if (!dalamBulan(o.tanggal || o.mulai)) return;
       var key = o.nip || o.nama; if (!key) return;
       var s = ambil(key, o.nama);
-      if (/sakit/i.test(o.jenis)) s.sakit++;
-      else if (/izin/i.test(o.jenis)) s.izin++;
-      else if (/cuti/i.test(o.jenis)) s.cuti++;
+      var target = /sakit/i.test(o.jenis) ? s.sakitSet : /izin/i.test(o.jenis) ? s.izinSet : /cuti/i.test(o.jenis) ? s.cutiSet : null;
+      if (!target) return;
+      rentangHariKerja(o.mulai || o.tanggal, o.selesai || o.mulai || o.tanggal, hk).forEach(function (d) { target[d] = true; });
     });
-    var baris = Object.keys(peta).map(function (k) { return peta[k]; });
-    baris.sort(function (a, b) { return (b.tlMenit - a.tlMenit) || (b.pcMenit - a.pcMenit) || a.nama.localeCompare(b.nama); });
+    var totalHK = hk ? Object.keys(hk) : null;
+    var baris = Object.keys(peta).map(function (k) {
+      var s = peta[k];
+      var tertutup = {};
+      [s.hadirSet, s.sakitSet, s.izinSet, s.cutiSet].forEach(function (set) { Object.keys(set).forEach(function (d) { tertutup[d] = true; }); });
+      var mangkir = null;
+      if (totalHK) { mangkir = 0; totalHK.forEach(function (d) { if (!tertutup[d]) mangkir++; }); }
+      return {
+        nama: s.nama, hadir: Object.keys(s.hadirSet).length,
+        tlKali: s.tlKali, tlMenit: s.tlMenit, pcKali: s.pcKali, pcMenit: s.pcMenit,
+        sakit: Object.keys(s.sakitSet).length, izin: Object.keys(s.izinSet).length, cuti: Object.keys(s.cutiSet).length,
+        mangkir: mangkir
+      };
+    });
+    baris.sort(function (a, b) { return (b.tlMenit - a.tlMenit) || ((b.mangkir || 0) - (a.mangkir || 0)) || a.nama.localeCompare(b.nama); });
     return baris;
   }
 
