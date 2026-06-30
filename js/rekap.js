@@ -69,7 +69,8 @@
     const bulan = $("f-bulan").value; // "YYYY-MM" atau "" (semua)
     const hasil = semuaData.filter(function (row) {
       if (!bulan) return true;
-      const rTgl = tgl(f(row, ["Tanggal", "Tanggal Mulai", "Timestamp"]));
+      // Timestamp (kolom pertama) paling andal; fallback ke kolom tanggal lain
+      const rTgl = tgl(f(row, ["Timestamp", "Tanggal", "Tanggal Mulai"]));
       return rTgl.indexOf(bulan) === 0; // tanggal "YYYY-MM-DD" diawali "YYYY-MM"
     });
     render(hasil); return hasil;
