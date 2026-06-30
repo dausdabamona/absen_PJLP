@@ -102,12 +102,12 @@
   function cari(row, kandidat) { for (var i = 0; i < kandidat.length; i++) { var k = kandidat[i]; if (row[k] !== undefined && row[k] !== "") return String(row[k]); } return ""; }
 
   const RINGKASAN_KOL = [
-    { judul: "Nama", get: function (s) { return esc(s.nama); } },
+    { judul: "Nama", get: function (s) { return s.nama; } },
     { judul: "Hadir", get: function (s) { return s.hadir; } },
     { judul: "Terlambat (×)", get: function (s) { return s.tlKali; } },
-    { judul: "Total Terlambat (mnt)", get: function (s) { return s.tlMenit > 0 ? '<span class="mnt-bad">' + s.tlMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.tlMenit; } },
+    { judul: "Total Terlambat (mnt)", html: true, get: function (s) { return s.tlMenit > 0 ? '<span class="mnt-bad">' + s.tlMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.tlMenit; } },
     { judul: "Pulang Cepat (×)", get: function (s) { return s.pcKali; } },
-    { judul: "Total Pulang Cepat (mnt)", get: function (s) { return s.pcMenit > 0 ? '<span class="mnt-warn">' + s.pcMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.pcMenit; } },
+    { judul: "Total Pulang Cepat (mnt)", html: true, get: function (s) { return s.pcMenit > 0 ? '<span class="mnt-warn">' + s.pcMenit + "</span>" : '<span class="mnt-ok">0</span>'; }, raw: function (s) { return s.pcMenit; } },
     { judul: "Sakit", get: function (s) { return s.sakit; } },
     { judul: "Izin", get: function (s) { return s.izin; } },
     { judul: "Cuti", get: function (s) { return s.cuti; } }
