@@ -352,3 +352,13 @@ td a { color: var(--primary); }
   margin-bottom: 12px;
 }
 .topbar-mini .info-jam { margin-bottom: 0; }
+
+/* Kartu ringkasan pribadi di halaman depan */
+.ringkas-saya { background: #f1f5f9; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+.rs-judul { font-weight: 700; font-size: 14px; margin-bottom: 10px; color: #334155; }
+.rs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rs-item { background: #fff; border-radius: 10px; padding: 10px 6px; text-align: center; }
+.rs-angka { display: block; font-size: 20px; font-weight: 800; line-height: 1.1; }
+.rs-label { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.rs-kaki { margin-top: 10px; font-size: 12px; color: #475569; text-align: center; }
+@media (max-width: 420px) { .rs-grid { grid-template-columns: repeat(2, 1fr); } .rs-angka { font-size: 18px; } }

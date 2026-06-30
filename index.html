@@ -76,6 +76,16 @@
               <small>Hari Jumat — absen boleh dari mana saja</small>
             </div>
           </div>
+          <div id="ringkasan-saya" class="ringkas-saya hidden">
+            <div class="rs-judul">📊 Ringkasan Saya — <span id="rs-bulan"></span></div>
+            <div class="rs-grid">
+              <div class="rs-item"><span class="rs-angka" id="rs-hadir">-</span><span class="rs-label">Hadir (hari)</span></div>
+              <div class="rs-item"><span class="rs-angka mnt-bad" id="rs-telat-x">-</span><span class="rs-label">Terlambat (×)</span></div>
+              <div class="rs-item"><span class="rs-angka mnt-bad" id="rs-telat-jam">-</span><span class="rs-label">Total Terlambat</span></div>
+              <div class="rs-item"><span class="rs-angka mnt-warn" id="rs-cepat-x">-</span><span class="rs-label">Pulang Cepat (×)</span></div>
+            </div>
+            <div class="rs-kaki" id="rs-izin">Sakit 0 • Izin 0 • Cuti 0</div>
+          </div>
           <div class="info-jam" id="info-jam-kerja">Jam kerja: -</div>
           <form id="form-absen" autocomplete="off">
             <div class="field-group">
@@ -117,7 +127,9 @@
         </div>
 
         <div id="pane-izin" class="hidden">
-          <p class="seksi-info">Ajukan keterangan jika tidak hadir. Wajib melampirkan foto surat.</p>
+          <p class="seksi-info">Ajukan keterangan jika tidak hadir. Wajib melampirkan foto surat.
+            <a href="surat.html" class="link-rekap">📄 Buat Surat untuk dicetak →</a>
+          </p>
           <form id="form-izin" autocomplete="off">
             <label>Jenis
               <select id="i-jenis" required>

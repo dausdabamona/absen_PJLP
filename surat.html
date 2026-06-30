@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Surat Izin / Sakit / Cuti — PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .surat-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 820px) { .surat-layout { grid-template-columns: 1fr; } }
+
+    /* Pratinjau surat (kertas) */
+    .kertas {
+      background: #fff; color: #000; border: 1px solid var(--border); border-radius: 8px;
+      padding: 28px 32px; font-family: "Times New Roman", Georgia, serif; font-size: 14px; line-height: 1.55;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .kop { text-align: center; }
+    .kop-nama { font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .3px; }
+    .kop-alamat { font-size: 12px; }
+    .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 16px; }
+    .surat-judul { text-align: center; font-weight: 700; text-decoration: underline; text-transform: uppercase; margin: 6px 0 4px; }
+    .surat-nomor { text-align: center; font-size: 13px; margin-bottom: 16px; }
+    .kepada { margin: 12px 0; }
+    table.ident { border-collapse: collapse; margin: 6px 0 12px; }
+    table.ident td { padding: 1px 6px 1px 0; vertical-align: top; }
+    .isi { text-align: justify; margin: 10px 0; }
+    .ttd-area { display: flex; justify-content: space-between; margin-top: 26px; }
+    .ttd-blok { text-align: center; min-width: 200px; }
+    .ttd-space { height: 64px; }
+    .ttd-nama { font-weight: 700; text-decoration: underline; }
+    .ttd-kanan-only { margin-left: auto; }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .app, .card { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
+      .surat-layout { display: block; }
+      .kertas { border: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 12pt; }
+      @page { size: A4; margin: 2cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">📄</span>
+        <div>
+          <h1>Surat Izin / Sakit / Cuti</h1>
+          <p class="subtitle">Isi, lalu cetak atau simpan PDF</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="index.html">&larr; Absen</a>
+    </header>
+
+    <main class="card">
+      <div class="surat-layout">
+        <!-- FORM -->
+        <div class="no-print">
+          <h2 class="seksi-judul">Data Surat</h2>
+          <form id="form-surat" autocomplete="off">
+            <label>Jenis Surat
+              <select id="s-jenis">
+                <option value="Izin">Izin</option>
+                <option value="Sakit">Sakit</option>
+                <option value="Cuti">Cuti</option>
+              </select>
+            </label>
+            <label>Nama Instansi (Kop)<input type="text" id="s-instansi" value="POLITEKNIK KESEHATAN KEMENKES SORONG"></label>
+            <label>Alamat Instansi <span class="opsional">(opsional)</span><input type="text" id="s-alamat" placeholder="Jl. ... , Kota Sorong"></label>
+            <label>Nomor Surat <span class="opsional">(opsional)</span><input type="text" id="s-nomor" placeholder="mis. 001/IZIN/VI/2026"></label>
+
+            <hr class="garis">
+            <label>Nama Pemohon<input type="text" id="s-nama" placeholder="Nama lengkap"></label>
+            <label>NIP / ID <span class="opsional">(opsional)</span><input type="text" id="s-nip"></label>
+            <label>Jabatan<input type="text" id="s-jabatan" value="PJLP"></label>
+
+            <div class="grid2">
+              <label>Tanggal Mulai<input type="date" id="s-mulai"></label>
+              <label>Tanggal Selesai<input type="date" id="s-selesai"></label>
+            </div>
+            <label>Alasan / Keperluan
+              <textarea id="s-alasan" rows="3" placeholder="Jelaskan alasan/keperluan..."></textarea>
+            </label>
+
+            <hr class="garis">
+            <label>Ditujukan Kepada <span class="opsional">(Yth.)</span><input type="text" id="s-kepada" value="Direktur Politeknik Kesehatan Kemenkes Sorong"></label>
+            <div class="grid2">
+              <label>Kota<input type="text" id="s-kota" value="Sorong"></label>
+              <label>Tanggal Surat<input type="date" id="s-tglsurat"></label>
+            </div>
+            <label>Nama Atasan/Penyetuju <span class="opsional">(opsional, untuk "Mengetahui")</span><input type="text" id="s-atasan"></label>
+            <label>NIP Atasan <span class="opsional">(opsional)</span><input type="text" id="s-atasannip"></label>
+
+            <button type="button" id="btn-cetak" class="submit">🖨️ Cetak / Simpan PDF</button>
+          </form>
+        </div>
+
+        <!-- PRATINJAU -->
+        <div>
+          <div class="seksi-info no-print">Pratinjau (yang akan dicetak):</div>
+          <div id="surat" class="kertas">
+            <div class="kop">
+              <div class="kop-nama" id="p-instansi"></div>
+              <div class="kop-alamat" id="p-alamat"></div>
+            </div>
+            <hr class="kop-garis">
+            <div class="surat-judul" id="p-judul"></div>
+            <div class="surat-nomor" id="p-nomor"></div>
+
+            <div class="kepada" id="p-kepada"></div>
+
+            <p>Yang bertanda tangan di bawah ini:</p>
+            <table class="ident">
+              <tr><td>Nama</td><td>:</td><td id="p-nama"></td></tr>
+              <tr><td>NIP / ID</td><td>:</td><td id="p-nip"></td></tr>
+              <tr><td>Jabatan</td><td>:</td><td id="p-jabatan"></td></tr>
+            </table>
+
+            <p class="isi" id="p-isi"></p>
+            <p class="isi">Demikian surat ini saya buat dengan sebenarnya. Atas perhatian dan perkenannya, saya ucapkan terima kasih.</p>
+
+            <div class="ttd-area" id="p-ttd-area">
+              <div class="ttd-blok" id="p-blok-atasan">
+                <div>Mengetahui,</div>
+                <div id="p-atasan-jabatan">&nbsp;</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-atasan-nama"></div>
+                <div id="p-atasan-nip"></div>
+              </div>
+              <div class="ttd-blok" id="p-blok-pemohon">
+                <div id="p-kotatgl"></div>
+                <div>Hormat saya,</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-ttd-nama"></div>
+                <div id="p-ttd-nip"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/surat.js"></script>
+</body>
+</html>

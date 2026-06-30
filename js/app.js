@@ -78,6 +78,67 @@
     img.src = dataUrl;
   }
 
+  /* ---------- Ringkasan pribadi (bulan ini) ---------- */
+  function nilaiBaris(row) { var o = []; for (var k in row) { if (Object.prototype.hasOwnProperty.call(row, k)) o.push(row[k]); } return o; }
+  function jamMenit(m) { m = parseInt(m, 10) || 0; if (m <= 0) return "0"; var j = Math.floor(m / 60), s = m % 60, o = []; if (j) o.push(j + " jam"); if (s) o.push(s + " mnt"); return o.join(" "); }
+  function normAbsen(row) {
+    var o = { tanggal: "", jam: "", waktu: "", jenis: "", terlambat: 0, cepat: 0 };
+    nilaiBaris(row).forEach(function (v) {
+      var s = (v == null ? "" : String(v)).trim(); if (!s) return;
+      var mt = /Terlambat\s+(\d+)\s*menit/i.exec(s); if (mt) { o.terlambat = parseInt(mt[1], 10); return; }
+      var mc = /Pulang\s*Cepat\s+(\d+)\s*menit/i.exec(s); if (mc) { o.cepat = parseInt(mc[1], 10); return; }
+      if (/^(masuk|pulang)$/i.test(s)) { o.jenis = s; return; }
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        if (!o.tanggal) o.tanggal = s.substring(0, 10);
+        var tm = /(\d{1,2}:\d{2}(:\d{2})?)/.exec(s); if (tm) { if (!o.jam) o.jam = tm[1]; if (!o.waktu) o.waktu = s; }
+        return;
+      }
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) { if (!o.jam) o.jam = s; return; }
+    });
+    if (!o.waktu) o.waktu = (o.tanggal + " " + o.jam).trim();
+    return o;
+  }
+  function bulanIniStr() { var d = waktuLokal(); return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
+
+  function muatRingkasanSaya() {
+    var bulan = bulanIniStr();
+    $("rs-bulan").textContent = BULAN[waktuLokal().getMonth()] + " " + waktuLokal().getFullYear();
+    Promise.all([API.post({ action: "rekapAbsensi" }), API.post({ action: "rekapIzin" })])
+      .then(function (r) {
+        var abs = (r[0] && r[0].data) || [], izin = (r[1] && r[1].data) || [];
+        var hadir = {}, tlKali = 0, tlMenit = 0, pcKali = 0, sakit = 0, izinN = 0, cuti = 0;
+        // Dedup per hari: Masuk pertama (telat) & Pulang terakhir (cepat)
+        var hari = {};
+        abs.forEach(function (row) {
+          var o = normAbsen(row);
+          if (o.tanggal.indexOf(bulan) !== 0 || !o.tanggal) return;
+          if (!hari[o.tanggal]) hari[o.tanggal] = { masuk: null, pulang: null };
+          var d = hari[o.tanggal];
+          if (/masuk/i.test(o.jenis)) { if (!d.masuk || o.waktu < d.masuk.waktu) d.masuk = o; }
+          else if (/pulang/i.test(o.jenis)) { if (!d.pulang || o.waktu > d.pulang.waktu) d.pulang = o; }
+        });
+        Object.keys(hari).forEach(function (t) {
+          var d = hari[t];
+          if (d.masuk) { hadir[t] = true; if (d.masuk.terlambat > 0) { tlKali++; tlMenit += d.masuk.terlambat; } }
+          if (d.pulang && d.pulang.cepat > 0) pcKali++;
+        });
+        izin.forEach(function (row) {
+          var vals = nilaiBaris(row).map(function (v) { return v == null ? "" : String(v); });
+          var dlmBulan = vals.some(function (s) { return /^\d{4}-\d{2}-\d{2}/.test(s) && s.indexOf(bulan) === 0; });
+          if (!dlmBulan) return;
+          var jenis = vals.filter(function (s) { return /^(sakit|izin|cuti)$/i.test(s.trim()); })[0] || "";
+          if (/sakit/i.test(jenis)) sakit++; else if (/izin/i.test(jenis)) izinN++; else if (/cuti/i.test(jenis)) cuti++;
+        });
+        $("rs-hadir").textContent = Object.keys(hadir).length;
+        $("rs-telat-x").textContent = tlKali;
+        $("rs-telat-jam").textContent = jamMenit(tlMenit);
+        $("rs-cepat-x").textContent = pcKali;
+        $("rs-izin").textContent = "Sakit " + sakit + " • Izin " + izinN + " • Cuti " + cuti;
+        $("ringkasan-saya").classList.remove("hidden");
+      })
+      .catch(function () { /* diam saja bila gagal */ });
+  }
+
   /* ---------- Cek perangkat ---------- */
   function cekStatus() {
     if (API.belumDikonfigurasi()) {
@@ -98,7 +159,7 @@
         if (res.deviceStatus === "disetujui") {
           $("absen-nama").textContent = res.nama || "";
           $("absen-nip").textContent = res.nip ? "• " + res.nip : "";
-          tampil("absen"); mulaiReminder();
+          tampil("absen"); mulaiReminder(); muatRingkasanSaya();
         } else if (res.deviceStatus === "pending") {
           $("pending-nama").textContent = res.nama || ""; tampil("pending");
         } else { tampil("blokir"); }

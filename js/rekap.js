@@ -33,7 +33,7 @@
 
   /* ---------- normalisasi berbasis isi ---------- */
   function normAbsen(row) {
-    var o = { tanggal: "", jam: "", nama: "", nip: "", deviceId: "", jenis: "", status: "", terlambat: 0, cepat: 0, link: "", ket: "" };
+    var o = { tanggal: "", jam: "", waktu: "", nama: "", nip: "", deviceId: "", jenis: "", status: "", terlambat: 0, cepat: 0, link: "", ket: "" };
     nilaiBaris(row).forEach(function (v) {
       var s = (v == null ? "" : String(v)).trim();
       if (!s) return;
@@ -42,7 +42,12 @@
       var mPc = /Pulang\s*Cepat\s+(\d+)\s*menit/i.exec(s); if (mPc) { o.status = s; o.cepat = parseInt(mPc[1], 10); return; }
       if (/Tepat\s*Waktu/i.test(s)) { o.status = s; return; }
       if (/^(masuk|pulang)$/i.test(s)) { o.jenis = s; return; }
-      if (/^\d{4}-\d{2}-\d{2}/.test(s)) { if (!o.tanggal) o.tanggal = s.substring(0, 10); var tm = /(\d{1,2}:\d{2}(:\d{2})?)/.exec(s); if (tm && !o.jam) o.jam = tm[1]; return; }
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        if (!o.tanggal) o.tanggal = s.substring(0, 10);
+        var tm = /(\d{1,2}:\d{2}(:\d{2})?)/.exec(s);
+        if (tm) { if (!o.jam) o.jam = tm[1]; if (!o.waktu) o.waktu = s; } // timestamp lengkap (ada jam) utk urutkan
+        return;
+      }
       if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) { if (!o.jam) o.jam = s; return; }
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(s)) { if (!o.deviceId) o.deviceId = s; return; }
       if (/^[-+]?\d{1,3}\.\d+$/.test(s)) return; // koordinat lat/lng
@@ -50,6 +55,7 @@
       if (/^\[.*\]$/.test(s)) { o.ket = o.ket ? o.ket + " " + s : s; return; }
       if (/[a-zA-Z]/.test(s)) { if (!o.nama) o.nama = s; else o.ket = o.ket ? o.ket + " " + s : s; }
     });
+    if (!o.waktu) o.waktu = (o.tanggal + " " + o.jam).trim();
     return o;
   }
 
@@ -167,13 +173,25 @@
       if (nama && (peta[key].nama === key || !peta[key].nama)) peta[key].nama = nama;
       return peta[key];
     }
+    // Kelompokkan per (pegawai, hari): Masuk pertama untuk telat, Pulang terakhir untuk cepat
+    var hari = {}; // "key|tanggal" -> { key, nama, tanggal, masuk, pulang }
     absRows.map(normAbsen).forEach(function (o) {
-      if (!dalamBulan(o.tanggal)) return;
+      if (!dalamBulan(o.tanggal) || !o.tanggal) return;
       var key = o.nip || o.nama || o.deviceId; if (!key) return;
-      var s = ambil(key, o.nama);
-      if (/masuk/i.test(o.jenis) && o.tanggal) s.hadirSet[o.tanggal] = true;
-      if (o.terlambat > 0) { s.tlKali++; s.tlMenit += o.terlambat; }
-      if (o.cepat > 0) { s.pcKali++; s.pcMenit += o.cepat; }
+      var hk = key + "|" + o.tanggal;
+      if (!hari[hk]) hari[hk] = { key: key, nama: o.nama, tanggal: o.tanggal, masuk: null, pulang: null };
+      var d = hari[hk];
+      if (o.nama && !d.nama) d.nama = o.nama;
+      if (/masuk/i.test(o.jenis)) { if (!d.masuk || o.waktu < d.masuk.waktu) d.masuk = o; }       // paling AWAL
+      else if (/pulang/i.test(o.jenis)) { if (!d.pulang || o.waktu > d.pulang.waktu) d.pulang = o; } // paling AKHIR
+    });
+    Object.keys(hari).forEach(function (hk) {
+      var d = hari[hk], s = ambil(d.key, d.nama);
+      if (d.masuk) {
+        s.hadirSet[d.tanggal] = true;
+        if (d.masuk.terlambat > 0) { s.tlKali++; s.tlMenit += d.masuk.terlambat; }
+      }
+      if (d.pulang && d.pulang.cepat > 0) { s.pcKali++; s.pcMenit += d.pulang.cepat; }
     });
     izinRows.map(normIzin).forEach(function (o) {
       var key = o.nip || o.nama; if (!key) return;
