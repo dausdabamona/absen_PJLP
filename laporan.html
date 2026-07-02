@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Jurnal Bulanan — PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .laporan-layout { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 860px) { .laporan-layout { grid-template-columns: 1fr; } }
+
+    .kertas {
+      background: #fff; color: #000; border: 1px solid var(--border); border-radius: 8px;
+      padding: 28px 32px; font-family: "Times New Roman", Georgia, serif; font-size: 13px; line-height: 1.5;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .kop { text-align: center; }
+    .kop-nama { font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .3px; }
+    .kop-alamat { font-size: 12px; }
+    .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 14px; }
+    .lap-judul { text-align: center; font-weight: 700; text-decoration: underline; text-transform: uppercase; margin: 4px 0 12px; }
+    table.ident { border-collapse: collapse; margin: 4px 0 12px; font-size: 13px; }
+    table.ident td { padding: 1px 6px 1px 0; vertical-align: top; }
+    table.jurnal { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12px; }
+    table.jurnal th, table.jurnal td { border: 1px solid #000; padding: 5px 7px; text-align: left; vertical-align: top; white-space: normal; }
+    table.jurnal th { background: #eee; }
+    table.jurnal td.no, table.jurnal td.tgl, table.jurnal td.jam { white-space: nowrap; text-align: center; }
+    .ttd-area { display: flex; justify-content: space-between; margin-top: 26px; }
+    .ttd-blok { text-align: center; min-width: 210px; }
+    .ttd-space { height: 62px; }
+    .ttd-nama { font-weight: 700; text-decoration: underline; }
+    .ttd-kanan-only { margin-left: auto; }
+    .lampiran-judul { font-weight: 700; margin: 18px 0 8px; }
+    .foto-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .foto-item { border: 1px solid #999; padding: 4px; text-align: center; font-size: 11px; }
+    .foto-item img { width: 100%; height: 130px; object-fit: cover; }
+    .kosong { font-style: italic; color: #444; }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .app, .card { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
+      .laporan-layout { display: block; }
+      .kertas { border: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 12pt; }
+      .foto-item { break-inside: avoid; }
+      table.jurnal tr { break-inside: avoid; }
+      @page { size: A4; margin: 1.8cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">🗒️</span>
+        <div>
+          <h1>Laporan Jurnal Bulanan</h1>
+          <p class="subtitle">Rekap kegiatan Anda — cetak / simpan PDF</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="index.html">&larr; Absen</a>
+    </header>
+
+    <main class="card">
+      <div class="laporan-layout">
+        <!-- KONTROL -->
+        <div class="no-print">
+          <h2 class="seksi-judul">Data Laporan</h2>
+          <div id="lap-status" class="status muted">Memuat jurnal perangkat ini...</div>
+          <form id="form-lap" autocomplete="off">
+            <label>Bulan<input type="month" id="l-bulan"></label>
+            <label>Nama<input type="text" id="l-nama" placeholder="Nama lengkap"></label>
+            <label>NIP / ID <span class="opsional">(opsional)</span><input type="text" id="l-nip"></label>
+            <label>Jabatan<input type="text" id="l-jabatan" value="PJLP"></label>
+            <label>Nama Instansi (Kop)<input type="text" id="l-instansi" value="POLITEKNIK KESEHATAN KEMENKES SORONG"></label>
+            <label>Alamat Instansi <span class="opsional">(opsional)</span><input type="text" id="l-alamat" placeholder="Jl. ... , Kota Sorong"></label>
+            <div class="grid2">
+              <label>Kota<input type="text" id="l-kota" value="Sorong"></label>
+              <label>Tanggal Laporan<input type="date" id="l-tgl"></label>
+            </div>
+            <label>Nama Atasan/Penyetuju <span class="opsional">(opsional, "Mengetahui")</span><input type="text" id="l-atasan"></label>
+            <label>NIP Atasan <span class="opsional">(opsional)</span><input type="text" id="l-atasannip"></label>
+            <label class="switch-row" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="l-foto"> <span>Sertakan lampiran foto</span>
+            </label>
+            <button type="button" id="btn-cetak" class="submit">🖨️ Cetak / Simpan PDF</button>
+          </form>
+        </div>
+
+        <!-- PRATINJAU -->
+        <div>
+          <div class="seksi-info no-print">Pratinjau (yang akan dicetak):</div>
+          <div id="laporan" class="kertas">
+            <div class="kop">
+              <div class="kop-nama" id="p-instansi"></div>
+              <div class="kop-alamat" id="p-alamat"></div>
+            </div>
+            <hr class="kop-garis">
+            <div class="lap-judul">Laporan Jurnal Kegiatan Bulanan</div>
+
+            <table class="ident">
+              <tr><td>Nama</td><td>:</td><td id="p-nama"></td></tr>
+              <tr><td>NIP / ID</td><td>:</td><td id="p-nip"></td></tr>
+              <tr><td>Jabatan</td><td>:</td><td id="p-jabatan"></td></tr>
+              <tr><td>Bulan</td><td>:</td><td id="p-bulan"></td></tr>
+            </table>
+
+            <table class="jurnal">
+              <thead><tr><th style="width:34px;">No</th><th style="width:92px;">Tanggal</th><th style="width:64px;">Jam</th><th>Uraian Kegiatan</th></tr></thead>
+              <tbody id="p-body"></tbody>
+            </table>
+
+            <div id="p-lampiran" style="display:none">
+              <div class="lampiran-judul">Lampiran Foto Kegiatan</div>
+              <div class="foto-grid" id="p-foto-grid"></div>
+            </div>
+
+            <div class="ttd-area">
+              <div class="ttd-blok" id="p-blok-atasan">
+                <div>Mengetahui,</div>
+                <div>&nbsp;</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-atasan-nama"></div>
+                <div id="p-atasan-nip"></div>
+              </div>
+              <div class="ttd-blok" id="p-blok-pemohon">
+                <div id="p-kotatgl"></div>
+                <div>Hormat saya,</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-ttd-nama"></div>
+                <div id="p-ttd-nip"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/laporan.js"></script>
+</body>
+</html>
