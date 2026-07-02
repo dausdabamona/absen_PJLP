@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Berita Acara PJLP (BAPP / BAST / BAP)</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .ba-layout { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 880px) { .ba-layout { grid-template-columns: 1fr; } }
+
+    .kertas {
+      background: #fff; color: #000; border: 1px solid var(--border); border-radius: 8px;
+      padding: 30px 34px; font-family: "Times New Roman", Georgia, serif; font-size: 14px; line-height: 1.6;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .kop { text-align: center; }
+    .kop-nama { font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .3px; }
+    .kop-alamat { font-size: 12px; }
+    .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 16px; }
+    .ba-judul { text-align: center; font-weight: 700; text-transform: uppercase; margin: 6px 0 2px; line-height: 1.3; }
+    .ba-judul .sub { display: block; font-size: 12px; font-weight: 400; text-transform: none; }
+    .ba-nomor { text-align: center; font-size: 13px; margin-bottom: 16px; }
+    .isi { text-align: justify; margin: 9px 0; }
+    table.rinci { border-collapse: collapse; margin: 4px 0 4px 14px; }
+    table.rinci td { padding: 1px 8px 1px 0; vertical-align: top; }
+    .ttd-area { display: flex; justify-content: space-between; margin-top: 28px; gap: 20px; }
+    .ttd-blok { text-align: center; width: 46%; }
+    .ttd-space { height: 66px; }
+    .ttd-nama { font-weight: 700; text-decoration: underline; }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .app, .card { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
+      .ba-layout { display: block; }
+      .kertas { border: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 12pt; }
+      .ttd-area { break-inside: avoid; }
+      @page { size: A4; margin: 2cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">📑</span>
+        <div>
+          <h1>Berita Acara PJLP</h1>
+          <p class="subtitle">BAPP / BAST / BAP — cetak / simpan PDF</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="laporan.html">&larr; Laporan Jurnal</a>
+    </header>
+
+    <main class="card">
+      <div class="ba-layout">
+        <!-- FORM -->
+        <div class="no-print">
+          <h2 class="seksi-judul">Data Berita Acara</h2>
+          <form id="form-ba" autocomplete="off">
+            <label>Jenis Dokumen
+              <select id="b-jenis">
+                <option value="BAPP">BAPP — Pemeriksaan Pekerjaan</option>
+                <option value="BAST">BAST — Serah Terima Pekerjaan</option>
+                <option value="BAP">BAP — Pembayaran</option>
+              </select>
+            </label>
+            <label>Nomor <span class="opsional">(opsional)</span><input type="text" id="b-nomor" placeholder="mis. 001/BAST/VI/2026"></label>
+            <label>Nama Instansi (Kop)<input type="text" id="b-instansi" value="POLITEKNIK KESEHATAN KEMENKES SORONG"></label>
+            <label>Alamat Instansi <span class="opsional">(opsional)</span><input type="text" id="b-alamat" placeholder="Jl. ... , Kota Sorong"></label>
+            <label>Bulan Pekerjaan<input type="month" id="b-bulan"></label>
+
+            <hr class="garis">
+            <div class="seksi-info" style="margin-bottom:6px;">PIHAK KESATU / PERTAMA (Pejabat / PPK)</div>
+            <label>Nama Pejabat<input type="text" id="b-pnama" placeholder="Nama PPK"></label>
+            <label>NIP <span class="opsional">(opsional)</span><input type="text" id="b-pnip"></label>
+            <label>Jabatan<input type="text" id="b-pjabatan" value="Pejabat Pembuat Komitmen"></label>
+            <label>Alamat / Unit Kerja <span class="opsional">(opsional)</span><input type="text" id="b-palamat"></label>
+
+            <hr class="garis">
+            <div class="seksi-info" style="margin-bottom:6px;">PIHAK KEDUA (PJLP)</div>
+            <label>Nama<input type="text" id="b-nama" placeholder="Nama lengkap PJLP"></label>
+            <label>NIP / ID <span class="opsional">(opsional)</span><input type="text" id="b-nip"></label>
+            <label>Jabatan / Jenis Pekerjaan<input type="text" id="b-jabatan" value="PJLP" placeholder="mis. Petugas Keamanan"></label>
+
+            <hr class="garis">
+            <div class="seksi-info" style="margin-bottom:6px;">Detail Pekerjaan / Nilai</div>
+            <label>Dasar (No. &amp; Tgl SPK/Kontrak)<input type="text" id="b-dasar" placeholder="mis. SPK No. 010/SPK/PJLP/2026 tgl 2 Januari 2026"></label>
+            <label>Paket Pekerjaan<input type="text" id="b-paket" placeholder="mis. Penyediaan Jasa Kebersihan"></label>
+            <label>Lingkup Pekerjaan<input type="text" id="b-lingkup" placeholder="mis. Kebersihan gedung & halaman"></label>
+            <div class="grid2">
+              <label>Nilai (Rp)<input type="text" id="b-nilai" inputmode="numeric" placeholder="mis. 1500000"></label>
+              <label>Jangka Waktu (hari)<input type="text" id="b-jangka" inputmode="numeric" placeholder="mis. 30"></label>
+            </div>
+            <div id="b-terbilang-info" class="status muted"></div>
+
+            <hr class="garis">
+            <div class="grid2">
+              <label>Kota<input type="text" id="b-kota" value="Sorong"></label>
+              <label>Tanggal Dokumen<input type="date" id="b-tgl"></label>
+            </div>
+
+            <button type="button" id="btn-cetak" class="submit">🖨️ Cetak / Simpan PDF</button>
+          </form>
+        </div>
+
+        <!-- PRATINJAU -->
+        <div>
+          <div class="seksi-info no-print">Pratinjau (yang akan dicetak):</div>
+          <div id="dokumen" class="kertas">
+            <div class="kop">
+              <div class="kop-nama" id="p-instansi"></div>
+              <div class="kop-alamat" id="p-alamat"></div>
+            </div>
+            <hr class="kop-garis">
+            <div class="ba-judul" id="p-judul"></div>
+            <div class="ba-nomor" id="p-nomor"></div>
+            <div id="p-body"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/berita-acara.js"></script>
+</body>
+</html>
