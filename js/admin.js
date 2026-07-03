@@ -66,8 +66,14 @@
   }
 
   function isiDropdownPegawai() {
-    var opsi = semuaPerangkat
-      .filter(function (d) { return d.status === "disetujui"; })
+    // 1 orang bisa punya beberapa perangkat disetujui (NIP sama) - tampilkan 1 baris per NIP unik.
+    var terlihat = {}, unik = [];
+    semuaPerangkat.filter(function (d) { return d.status === "disetujui"; }).forEach(function (d) {
+      var kunci = d.nip ? "nip:" + String(d.nip).trim() : "dev:" + d.deviceId;
+      if (terlihat[kunci]) return;
+      terlihat[kunci] = true; unik.push(d);
+    });
+    var opsi = unik
       .map(function (d) { return '<option value="' + esc(d.nip || "") + '" data-device="' + esc(d.deviceId) + '" data-nama="' + esc(d.nama) + '">' + esc(d.nama) + (d.nip ? " (" + esc(d.nip) + ")" : "") + "</option>"; })
       .join("");
     ["m-pilih", "dok-pilih"].forEach(function (id) {
