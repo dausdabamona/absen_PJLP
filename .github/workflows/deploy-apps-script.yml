@@ -1,0 +1,57 @@
+name: Push Code.gs ke Apps Script (clasp)
+
+# Menyinkronkan google-apps-script/ ke proyek Apps Script memakai clasp,
+# memakai kredensial yang Anda buat & simpan sendiri sebagai Secret
+# CLASP_CREDENTIALS (lihat README untuk cara membuatnya).
+#
+# CATATAN: ini hanya PUSH KODE. Mengaktifkan kode terbaru ke URL /exec
+# (web app) tetap harus dilakukan MANUAL di Apps Script:
+# Deploy -> Manage deployments -> Edit -> New version -> Deploy.
+
+on:
+  push:
+    branches:
+      - main
+      - claude/jolly-bardeen-w5rf5f
+    paths:
+      - "google-apps-script/**"
+      - ".clasp.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clasp-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install clasp
+        run: npm install -g @google/clasp
+
+      - name: Siapkan kredensial clasp dari Secret
+        env:
+          CLASP_CREDENTIALS: ${{ secrets.CLASP_CREDENTIALS }}
+        run: |
+          if [ -z "$CLASP_CREDENTIALS" ]; then
+            echo "::error::Secret CLASP_CREDENTIALS belum diisi. Lihat README untuk cara membuatnya (clasp login di komputer sendiri, lalu salin isi ~/.clasprc.json ke Secret ini)."
+            exit 1
+          fi
+          echo "$CLASP_CREDENTIALS" > ~/.clasprc.json
+
+      - name: Cek .clasp.json tersedia
+        run: |
+          if [ ! -f ".clasp.json" ]; then
+            echo "::error::.clasp.json belum ada di root repo (butuh scriptId Apps Script Anda)."
+            exit 1
+          fi
+
+      - name: Push ke Apps Script
+        run: clasp push -f
