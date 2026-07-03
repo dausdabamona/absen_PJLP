@@ -176,9 +176,11 @@
   $("form-daftar").addEventListener("submit", function (ev) {
     ev.preventDefault();
     const nama = $("d-nama").value.trim();
+    const nip = $("d-nip").value.trim();
     if (!nama) { tampilkanPesan("Nama wajib diisi.", false); return; }
+    if (!nip) { tampilkanPesan("NIP/ID wajib diisi (harus sama dengan pendaftaran HP lain Anda).", false); return; }
     const btn = $("btn-daftar"); btn.disabled = true; btn.textContent = "Mengirim...";
-    API.post({ action: "daftarPerangkat", nama: nama, nip: $("d-nip").value.trim() })
+    API.post({ action: "daftarPerangkat", nama: nama, nip: nip })
       .then(function (res) {
         if (res.status === "success") { $("pending-nama").textContent = nama; tampil("pending"); pesan.classList.add("hidden"); }
         else tampilkanPesan("Gagal: " + (res.message || "kesalahan"), false);

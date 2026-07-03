@@ -90,8 +90,10 @@
       let aksi = "";
       if (d.status !== "disetujui") aksi += '<button class="mini primary aksi" data-id="' + esc(d.deviceId) + '" data-act="disetujui">Setujui</button> ';
       if (d.status !== "diblokir") aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="diblokir">Blokir</button> ';
+      aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="edit">Edit</button> ';
       aksi += '<button class="mini danger aksi" data-id="' + esc(d.deviceId) + '" data-act="hapus">Hapus</button>';
-      return "<tr><td>" + esc(d.nama) + "</td><td>" + esc(d.nip || "-") + "</td><td>" + badge(d.status) +
+      var namaSel = "<td>" + esc(d.nama) + (d.kemungkinanSama ? '<br><span class="small muted">🔗 Kemungkinan sama dengan ' + esc(d.kemungkinanSama) + "</span>" : "") + "</td>";
+      return "<tr>" + namaSel + "<td>" + esc(d.nip || "-") + "</td><td>" + badge(d.status) +
         "</td><td>" + esc(d.didaftarkan || "") + "</td><td class=\"mono small\">" + esc(d.deviceId) + "</td><td class=\"aksi-sel\">" + aksi + "</td></tr>";
     }).join("");
   }
@@ -100,6 +102,15 @@
     const btn = ev.target.closest(".aksi"); if (!btn) return;
     const id = btn.getAttribute("data-id"), act = btn.getAttribute("data-act");
     if (act === "hapus") { if (!confirm("Hapus perangkat ini? Tidak bisa dibatalkan.")) return; kirim({ action: "hapusPerangkat", deviceId: id }); }
+    else if (act === "edit") {
+      const d = semuaPerangkat.filter(function (x) { return x.deviceId === id; })[0];
+      if (!d) return;
+      const namaBaru = prompt("Nama:", d.nama);
+      if (namaBaru === null) return;
+      const nipBaru = prompt("NIP/ID (harus sama persis dengan perangkat lain orang ini agar laporan tergabung):", d.nip || "");
+      if (nipBaru === null) return;
+      kirim({ action: "editPerangkat", deviceId: id, namaBaru: namaBaru.trim(), nipBaru: nipBaru.trim() });
+    }
     else kirim({ action: "setStatusPerangkat", deviceId: id, statusBaru: act });
   });
   function kirim(payload) {

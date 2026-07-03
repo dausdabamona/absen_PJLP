@@ -133,6 +133,7 @@ function doPost(e) {
       case "adminData":          return adminData(data);
       case "setStatusPerangkat": return setStatusPerangkat(data);
       case "hapusPerangkat":     return hapusPerangkat(data);
+      case "editPerangkat":      return editPerangkat(data);
       case "simpanPengaturan":   return simpanPengaturan(data);
       case "adminDataMaster":    return adminDataMaster(data);
       case "simpanDataMaster":   return simpanDataMaster(data);
@@ -150,6 +151,7 @@ function doGet() { return jsonOutput({ status: "success", message: "API Absensi 
 /* ====================== PERANGKAT ======================== */
 function daftarPerangkat(data) {
   if (!data.deviceId || !data.nama) return jsonOutput({ status: "error", message: "Nama & ID perangkat wajib." });
+  if (!data.nip || !String(data.nip).trim()) return jsonOutput({ status: "error", message: "NIP/ID wajib diisi." });
   const ada = cariPerangkat(data.deviceId);
   if (ada) return jsonOutput({ status: "success", deviceStatus: ada.status, message: "Perangkat sudah terdaftar (" + ada.status + ")." });
   const now = new Date();
@@ -254,7 +256,21 @@ function rekapData(data, namaSheet, header) {
   if (values.length < 2) return jsonOutput({ status: "success", data: [], isAdmin: !!isAdmin });
   values.shift(); // buang baris header di sheet; nama kolom diambil dari konstanta (header) agar selalu cocok dgn urutan tulis
   const idxDev = header.indexOf("Device ID");
-  let rows = isAdmin ? values : values.filter(function (r) { return String(r[idxDev]) === String(data.deviceId); });
+  const idxNip = header.indexOf("NIP/ID");
+  let rows;
+  if (isAdmin) {
+    rows = values;
+  } else {
+    // Gabungkan lintas-perangkat milik orang yang sama (NIP sama), agar 1 orang dengan
+    // beberapa HP tetap melihat satu laporan gabungan, bukan terpecah per perangkat.
+    const devSaya = cariPerangkat(data.deviceId);
+    const nipSaya = (devSaya && devSaya.nip) ? String(devSaya.nip).trim() : "";
+    rows = values.filter(function (r) {
+      if (String(r[idxDev]) === String(data.deviceId)) return true;
+      if (nipSaya && idxNip !== -1 && String(r[idxNip]).trim() === nipSaya) return true;
+      return false;
+    });
+  }
   const out = rows.map(function (row) {
     const obj = {};
     header.forEach(function (h, i) {
@@ -294,6 +310,21 @@ function hapusPerangkat(data) {
   if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
   getSheetPerangkat().deleteRow(dev.rowIndex);
   return jsonOutput({ status: "success", message: "Perangkat dihapus." });
+}
+
+function editPerangkat(data) {
+  // Perbaiki Nama/NIP satu baris perangkat (mis. typo NIP yang menggagalkan penggabungan
+  // laporan lintas-perangkat berdasarkan NIP).
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  const dev = cariPerangkat(data.deviceId);
+  if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
+  if (!data.namaBaru || !String(data.namaBaru).trim()) return jsonOutput({ status: "error", message: "Nama wajib diisi." });
+  if (!data.nipBaru || !String(data.nipBaru).trim()) return jsonOutput({ status: "error", message: "NIP/ID wajib diisi." });
+  const sheet = getSheetPerangkat();
+  sheet.getRange(dev.rowIndex, 2).setValue(String(data.namaBaru).trim());
+  sheet.getRange(dev.rowIndex, 3).setValue(String(data.nipBaru).trim());
+  sheet.getRange(dev.rowIndex, 6).setValue(new Date());
+  return jsonOutput({ status: "success", message: "Data perangkat diperbarui." });
 }
 
 /* ============== DATA MASTER PJLP (admin-only, data sensitif) ============== */
@@ -448,8 +479,17 @@ function cariPerangkat(deviceId) {
   return getDataPerangkat().filter(function (d) { return d.deviceId === String(deviceId); })[0] || null;
 }
 function listPerangkat() {
-  return getDataPerangkat().map(function (d) {
-    return { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
+  const semua = getDataPerangkat();
+  return semua.map(function (d) {
+    const out = { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
+    if (d.status === "pending" && d.nip) {
+      const nipTrim = String(d.nip).trim();
+      const cocok = semua.filter(function (x) {
+        return x.status === "disetujui" && x.nip && String(x.nip).trim() === nipTrim && x.deviceId !== d.deviceId;
+      })[0];
+      if (cocok) out.kemungkinanSama = cocok.nama;
+    }
+    return out;
   });
 }
 
