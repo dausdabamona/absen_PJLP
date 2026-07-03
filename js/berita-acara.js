@@ -69,6 +69,7 @@
 
     var nilai = Number(String($("b-nilai").value).replace(/[^\d]/g, "")) || 0;
     $("b-terbilang-info").textContent = nilai > 0 ? ("Terbilang: " + terbilang(nilai) + " rupiah") : "";
+    $("wrap-pajak").style.display = (jenis === "BAP") ? "" : "none";
 
     var pnama = $("b-pnama").value, pnip = $("b-pnip").value, pjab = $("b-pjabatan").value, palamat = $("b-palamat").value;
     var nama = $("b-nama").value, nip = $("b-nip").value, jab = $("b-jabatan").value;
@@ -99,15 +100,25 @@
       html += '<p class="isi">Dari serah terima pekerjaan tersebut dapat disimpulkan, bahwa pekerjaan yang diserahterimakan oleh PIHAK KEDUA kepada PIHAK KESATU telah sesuai ketentuan dan persyaratan yang diatur dalam Kontrak.</p>';
       html += '<p class="isi">Demikian Berita Acara Serah Terima Pekerjaan ini dibuat dalam rangkap secukupnya untuk dipergunakan sebagaimana mestinya.</p>';
     } else if (jenis === "BAPP") {
-      html += '<p class="isi">PIHAK KESATU telah melakukan pemeriksaan atas hasil pekerjaan PIHAK KEDUA untuk bulan <b>' + esc(bulan) + '</b>' + (paket || lingkup || nilai || jangka ? ', sebagai berikut:' : '.') + '</p>';
-      if (paket || lingkup || nilai || jangka) html += detail;
-      html += '<p class="isi">Hasil pemeriksaan: pekerjaan telah dilaksanakan dengan baik dan sesuai dengan ketentuan/persyaratan yang berlaku, sehingga dinyatakan <b>diterima</b>.</p>';
-      html += '<p class="isi">Demikian Berita Acara Pemeriksaan Pekerjaan ini dibuat untuk dipergunakan sebagaimana mestinya.</p>';
+      html += '<p class="isi">PIHAK KESATU telah melakukan pemeriksaan atas hasil pekerjaan yang dilaksanakan oleh PIHAK KEDUA' + (dasar ? ' berdasarkan ' + esc(dasar) : '') + ' untuk periode bulan <b>' + esc(bulan) + '</b>, dengan uraian sebagai berikut:</p>';
+      html += (paket || lingkup || nilai || jangka) ? detail : '';
+      html += '<p class="isi">Berdasarkan hasil pemeriksaan, pekerjaan telah dilaksanakan <b>100% (seratus persen)</b> dan telah sesuai dengan spesifikasi, kuantitas, serta kualitas sebagaimana ketentuan yang berlaku, sehingga hasil pekerjaan dinyatakan <b>DITERIMA</b>.</p>';
+      html += '<p class="isi">Berita Acara Pemeriksaan ini menjadi dasar untuk proses serah terima dan pembayaran pekerjaan.</p>';
+      html += '<p class="isi">Demikian Berita Acara Pemeriksaan Pekerjaan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.</p>';
     } else { // BAP
-      html += '<p class="isi">Sehubungan dengan telah dilaksanakan dan diterimanya pekerjaan untuk bulan <b>' + esc(bulan) + '</b>' + (dasar ? ' berdasarkan ' + esc(dasar) : '') + ', PIHAK KESATU berkewajiban membayarkan kepada PIHAK KEDUA sebesar:</p>';
-      html += detail || '<table class="rinci"><tr><td>Nilai Honorarium</td><td>:</td><td>Rp ' + esc(rupiah(nilai)) + ' (' + esc(terbilang(nilai)) + ' rupiah)</td></tr></table>';
-      html += '<p class="isi">Pembayaran tersebut merupakan hak PIHAK KEDUA atas pelaksanaan pekerjaan yang telah diselesaikan sesuai ketentuan.</p>';
-      html += '<p class="isi">Demikian Berita Acara Pembayaran ini dibuat untuk dipergunakan sebagaimana mestinya.</p>';
+      var pajak = Number(String($("b-pajak").value).replace(/[^\d]/g, "")) || 0;
+      var bersih = Math.max(0, nilai - pajak);
+      html += '<p class="isi">Berdasarkan ' + (dasar ? esc(dasar) + ' serta ' : '') + 'hasil pemeriksaan dan serah terima pekerjaan, PIHAK KESATU membayarkan kepada PIHAK KEDUA atas pelaksanaan pekerjaan untuk periode bulan <b>' + esc(bulan) + '</b>, dengan rincian sebagai berikut:</p>';
+      var rinciBayar = '<table class="rinci">' +
+        '<tr><td>Nilai Honorarium (Bruto)</td><td>:</td><td>Rp ' + esc(rupiah(nilai)) + ' (' + esc(terbilang(nilai)) + ' rupiah)</td></tr>';
+      if (pajak > 0) {
+        rinciBayar += '<tr><td>Potongan PPh</td><td>:</td><td>Rp ' + esc(rupiah(pajak)) + ' (' + esc(terbilang(pajak)) + ' rupiah)</td></tr>' +
+          '<tr><td><b>Jumlah Diterima (Netto)</b></td><td>:</td><td><b>Rp ' + esc(rupiah(bersih)) + ' (' + esc(terbilang(bersih)) + ' rupiah)</b></td></tr>';
+      }
+      rinciBayar += '</table>';
+      html += rinciBayar;
+      html += '<p class="isi">Pembayaran tersebut merupakan hak PIHAK KEDUA atas pelaksanaan pekerjaan yang telah diselesaikan dan diterima sesuai ketentuan Kontrak.</p>';
+      html += '<p class="isi">Demikian Berita Acara Pembayaran ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.</p>';
     }
 
     html += ttdDua("PIHAK KESATU,", pjab, pnama, pnip, kotatgl, "PIHAK KEDUA,", jab, nama, nip);
