@@ -134,14 +134,39 @@
   $("b-bulan").value = bulanIni();
   $("b-tgl").value = hariIni();
 
+  /* ---------- Mode Admin: dokumen untuk PJLP lain yg dipilih di panel admin ---------- */
+  var adminPw = sessionStorage.getItem("pjlp_admin_pw") || "";
+  var targetNip = sessionStorage.getItem("pjlp_target_nip") || "";
+  var targetNama = sessionStorage.getItem("pjlp_target_nama") || "";
+  var modeAdmin = !!(adminPw && targetNip);
+
   if (typeof API !== "undefined" && !API.belumDikonfigurasi()) {
-    API.post({ action: "cekPerangkat" }).then(function (res) {
-      if (res && res.status === "success" && res.terdaftar) {
-        if (res.nama && !$("b-nama").value) $("b-nama").value = res.nama;
-        if (res.nip && !$("b-nip").value) $("b-nip").value = res.nip;
-        render();
-      }
-    }).catch(function () {});
+    if (modeAdmin) {
+      $("banner-admin").classList.remove("hidden");
+      $("banner-admin-nama").textContent = targetNama;
+      if (targetNama && !$("b-nama").value) $("b-nama").value = targetNama;
+      if (targetNip && !$("b-nip").value) $("b-nip").value = targetNip;
+
+      // Ambil data master (jabatan/nilai) — hanya termuat karena admin sudah terautentikasi
+      API.post({ action: "adminDataMaster", password: adminPw, email: sessionStorage.getItem("pjlp_admin_email") || "" })
+        .then(function (res) {
+          if (!res || res.status !== "success") return;
+          var m = (res.master || []).filter(function (x) { return x.nip === targetNip; })[0];
+          if (!m) return;
+          if (m.jabatan2026 && $("b-jabatan").value === "PJLP") $("b-jabatan").value = m.jabatan2026;
+          if (m.hargaNegosiasi && !$("b-nilai").value) $("b-nilai").value = m.hargaNegosiasi;
+          render();
+        }).catch(function () {});
+    } else {
+      // Mode mandiri (perilaku asli, tidak berubah): hanya nama/NIP milik perangkat sendiri
+      API.post({ action: "cekPerangkat" }).then(function (res) {
+        if (res && res.status === "success" && res.terdaftar) {
+          if (res.nama && !$("b-nama").value) $("b-nama").value = res.nama;
+          if (res.nip && !$("b-nip").value) $("b-nip").value = res.nip;
+          render();
+        }
+      }).catch(function () {});
+    }
   }
 
   render();

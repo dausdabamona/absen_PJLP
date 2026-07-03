@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuitansi Pembayaran PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .ku-layout { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 880px) { .ku-layout { grid-template-columns: 1fr; } }
+
+    .kertas {
+      background: #fff; color: #000; border: 1px solid var(--border); border-radius: 8px;
+      padding: 30px 34px; font-family: "Times New Roman", Georgia, serif; font-size: 14px; line-height: 1.6;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .kop { text-align: center; }
+    .kop-nama { font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .3px; }
+    .kop-alamat { font-size: 12px; }
+    .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 16px; }
+    .ku-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .ku-judul { font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; }
+    .ku-nomor { font-size: 13px; margin-top: 4px; }
+    table.ku-isi { width: 100%; border-collapse: collapse; margin: 14px 0; }
+    table.ku-isi td { padding: 6px 4px; vertical-align: top; }
+    table.ku-isi td.label { width: 170px; }
+    .rp-box { border: 2px solid #000; border-radius: 6px; padding: 10px 16px; font-weight: 700; font-size: 18px; display: inline-block; margin: 6px 0 14px; }
+    .ku-ttd-area { display: flex; justify-content: flex-end; margin-top: 24px; }
+    .ku-ttd-blok { text-align: center; width: 240px; }
+    .materai-box { border: 1px dashed #666; width: 90px; height: 60px; margin: 6px auto; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; text-align: center; }
+    .ttd-space { height: 40px; }
+    .ttd-nama { font-weight: 700; text-decoration: underline; }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .app, .card { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
+      .ku-layout { display: block; }
+      .kertas { border: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 12pt; }
+      @page { size: A5 landscape; margin: 1.5cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">🧾</span>
+        <div>
+          <h1>Kuitansi Pembayaran</h1>
+          <p class="subtitle">Honorarium PJLP — cetak / simpan PDF</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="berita-acara.html">&larr; Berita Acara</a>
+    </header>
+
+    <main class="card">
+      <div id="banner-admin" class="info-jam no-print hidden">👑 Mode Admin — membuat kuitansi untuk <b id="banner-admin-nama"></b>.</div>
+      <div class="ku-layout">
+        <!-- FORM -->
+        <div class="no-print">
+          <h2 class="seksi-judul">Data Kuitansi</h2>
+          <form id="form-ku" autocomplete="off">
+            <label>Nomor Kuitansi <span class="opsional">(opsional)</span><input type="text" id="k-nomor" placeholder="mis. 01/KWT/PJLP/VI/2026"></label>
+            <label>Nama Instansi (Kop)<input type="text" id="k-instansi" value="POLITEKNIK KESEHATAN KEMENKES SORONG"></label>
+            <label>Alamat Instansi <span class="opsional">(opsional)</span><input type="text" id="k-alamat" placeholder="Jl. ... , Kota Sorong"></label>
+            <label>Sudah Terima Dari<input type="text" id="k-dari" value="Bendahara Pengeluaran"></label>
+            <label>Bulan Pembayaran<input type="month" id="k-bulan"></label>
+
+            <hr class="garis">
+            <label>Nama PJLP<input type="text" id="k-nama" placeholder="Nama lengkap"></label>
+            <label>NIP / ID <span class="opsional">(opsional)</span><input type="text" id="k-nip"></label>
+            <label>Jabatan<input type="text" id="k-jabatan" value="PJLP"></label>
+
+            <hr class="garis">
+            <label>Untuk Pembayaran (uraian)
+              <textarea id="k-uraian" rows="2">Honorarium PJLP bulan ...</textarea>
+            </label>
+            <label>Nilai (Rp)<input type="text" id="k-nilai" inputmode="numeric" placeholder="mis. 4098750"></label>
+            <div id="k-terbilang-info" class="status muted"></div>
+
+            <hr class="garis">
+            <div class="grid2">
+              <label>Kota<input type="text" id="k-kota" value="Sorong"></label>
+              <label>Tanggal Kuitansi<input type="date" id="k-tgl"></label>
+            </div>
+
+            <button type="button" id="btn-cetak" class="submit">🖨️ Cetak / Simpan PDF</button>
+          </form>
+        </div>
+
+        <!-- PRATINJAU -->
+        <div>
+          <div class="seksi-info no-print">Pratinjau (yang akan dicetak):</div>
+          <div id="dokumen" class="kertas">
+            <div class="kop">
+              <div class="kop-nama" id="p-instansi"></div>
+              <div class="kop-alamat" id="p-alamat"></div>
+            </div>
+            <hr class="kop-garis">
+            <div class="ku-head">
+              <div>
+                <div class="ku-judul">Kuitansi</div>
+                <div class="ku-nomor" id="p-nomor"></div>
+              </div>
+            </div>
+
+            <table class="ku-isi">
+              <tr><td class="label">Sudah terima dari</td><td>: <span id="p-dari"></span></td></tr>
+              <tr><td class="label">Banyaknya uang</td><td>: <b id="p-terbilang"></b></td></tr>
+              <tr><td class="label">Untuk pembayaran</td><td>: <span id="p-uraian"></span></td></tr>
+            </table>
+
+            <div class="rp-box">Rp <span id="p-rp"></span></div>
+
+            <div class="ku-ttd-area">
+              <div class="ku-ttd-blok">
+                <div id="p-kotatgl"></div>
+                <div>Yang Menerima,</div>
+                <div class="materai-box">Materai<br>Rp 10.000</div>
+                <div class="ttd-nama" id="p-ttd-nama"></div>
+                <div id="p-ttd-jabatan"></div>
+                <div id="p-ttd-nip"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/kuitansi.js"></script>
+</body>
+</html>

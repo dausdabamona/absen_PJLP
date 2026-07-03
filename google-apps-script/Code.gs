@@ -20,6 +20,8 @@ const SHEET_ABSEN = "Absensi";
 const SHEET_JURNAL = "Jurnal";
 const SHEET_IZIN = "Ketidakhadiran";
 const SHEET_PERANGKAT = "Perangkat";
+const SHEET_MASTER_PJLP = "Data Master PJLP";
+const SHEET_REGISTER_DOKUMEN = "Register Dokumen Pengadaan";
 const FOLDER_NAME = "Foto Jurnal PJLP";
 
 const JENIS_IZIN = ["Izin", "Sakit", "Cuti", "Dinas Luar", "Lainnya"];
@@ -39,6 +41,52 @@ const HEADER_IZIN = [
 const HEADER_PERANGKAT = [
   "Device ID", "Nama", "NIP/ID", "Status", "Didaftarkan", "Diperbarui"
 ];
+const HEADER_MASTER_PJLP = [
+  "NIP/ID", "Nama", "NIK", "NPWP", "Jabatan 2026", "Alamat",
+  "Nilai HPS (Rp)", "Harga Negosiasi (Rp)", "Data Rekening", "Pendidikan", "Diperbarui"
+];
+const HEADER_REGISTER_DOKUMEN = [
+  "No File", "Jenis Dokumen", "Nomor Surat", "Tanggal", "Jabatan PJLP", "Nama PJLP", "Keterangan"
+];
+// Seed sekali (idempotent): riwayat register dokumen pengadaan PJLP TA 2026
+const SEED_REGISTER_DOKUMEN = [
+  [2, "Undangan Pemasukan Penawaran", "B.5817/PP.9.30/TU.330/III/2026", "2026-03-16", "Petugas Layanan Informasi", "Monica Huwae, A.Md", "HPS: Rp46.889.061"],
+  [3, "Undangan Pemasukan Penawaran", "B.5818/PP.9.30/TU.330/III/2026", "2026-03-16", "Content Creator", "La Ode Faden Bilfar, A.Md.Pi", "HPS: Rp46.889.061"],
+  [4, "Undangan Pemasukan Penawaran", "B.5819/PP.9.30/TU.330/III/2026", "2026-03-16", "Pramubakti", "Alda Wahdaniah, A.Md", "HPS: Rp41.130.742"],
+  [5, "Undangan Pemasukan Penawaran", "B.5820/PP.9.30/TU.330/III/2026", "2026-03-16", "Pengemudi Operasional", "Muhamat Weking, A.Md", "HPS: Rp41.130.742"],
+  [6, "BA Perubahan Waktu Seleksi (Adendum)", "B.6300/PP.9.30/PL.450/III/2026", "2026-03-26", "Semua Jabatan", "-", "Perpanjangan waktu pemasukan s.d. 30 Maret 2026"],
+  [7, "BA Evaluasi Penawaran", "B.6536/PP.9.30/TU.330/IV/2026", "2026-04-01", "Petugas Layanan Informasi", "Monica Huwae, A.Md", "Lulus semua evaluasi"],
+  [8, "BA Evaluasi Penawaran", "B.6538/PP.9.30/TU.330/IV/2026", "2026-04-01", "Content Creator", "La Ode Faden Bilfar, A.Md.Pi", "Lulus semua evaluasi"],
+  [9, "BA Evaluasi Penawaran", "B.6541/PP.9.30/TU.330/IV/2026", "2026-04-01", "Pramubakti", "Alda Wahdaniah, A.Md", "Lulus semua evaluasi"],
+  [10, "BA Evaluasi Penawaran", "B.6542/PP.9.30/TU.330/IV/2026", "2026-04-01", "Pengemudi Operasional", "Muhamat Weking, A.Md", "Lulus semua evaluasi"],
+  [11, "Undangan Klarifikasi & Negosiasi", "B.6547/PP.9.30/TU.330/IV/2026", "2026-04-01", "Petugas Layanan Informasi", "Monica Huwae, A.Md", "Via Zoom, 15.00 WIT"],
+  [12, "Undangan Klarifikasi & Negosiasi", "B.6548/PP.9.30/TU.330/IV/2026", "2026-04-01", "Content Creator", "La Ode Faden Bilfar, A.Md.Pi", "Via Zoom, 15.30 WIT"],
+  [13, "Undangan Klarifikasi & Negosiasi", "B.6549/PP.9.30/TU.330/IV/2026", "2026-04-01", "Pramubakti", "Alda Wahdaniah, A.Md", "Via Zoom, 16.00 WIT"],
+  [14, "Undangan Klarifikasi & Negosiasi", "B.6549/PP.9.30/TU.330/IV/2026", "2026-04-01", "Pengemudi Operasional", "Muhamat Weking, A.Md", "Via Zoom, 16.30 WIT (nomor sama dgn no.13)"],
+  [15, "BA Klarifikasi Teknis & Negosiasi Harga", "B.6565/PP.9.30/PL.450/IV/2026", "2026-04-01", "Petugas Layanan Informasi", "Monica Huwae, A.Md", "Harga negosiasi = HPS"],
+  [16, "BA Klarifikasi Teknis & Negosiasi Harga", "B.6566/PP.9.30/PL.450/IV/2026", "2026-04-01", "Content Creator", "La Ode Faden Bilfar, A.Md.Pi", "Harga negosiasi = HPS"],
+  [17, "BA Klarifikasi Teknis & Negosiasi Harga", "B.6567/PP.9.30/PL.450/IV/2026", "2026-04-01", "Pramubakti", "Alda Wahdaniah, A.Md", "Harga negosiasi = HPS"],
+  [18, "BA Klarifikasi Teknis & Negosiasi Harga", "B.6568/PP.9.30/PL.450/IV/2026", "2026-04-01", "Pengemudi Operasional", "Muhamat Weking, A.Md", "Harga negosiasi = HPS"],
+  [19, "BAHPL (BA Hasil Pengadaan Langsung)", "B.6569/PP.9.30/PL.450/IV/2026", "2026-04-01", "Petugas Layanan Informasi", "Monica Huwae, A.Md", "Pemenang"],
+  [20, "BAHPL (BA Hasil Pengadaan Langsung)", "B.6570/PP.9.30/PL.450/IV/2026", "2026-04-01", "Content Creator", "La Ode Faden Bilfar, A.Md.Pi", "Pemenang"],
+  [21, "BAHPL (BA Hasil Pengadaan Langsung)", "B.6571/PP.9.30/PL.450/IV/2026", "2026-04-01", "Pramubakti", "Alda Wahdaniah, A.Md", "Pemenang"],
+  [22, "BAHPL (BA Hasil Pengadaan Langsung)", "B.6572/PP.9.30/PL.450/IV/2026", "2026-04-01", "Pengemudi Operasional", "Muhamat Weking, A.Md", "Pemenang"],
+  [23, "Penetapan & Pengumuman Pemenang", "B.6573/PP.9.30/PL.450/IV/2026", "2026-04-01", "Petugas Layanan Informasi", "Monica Huwae, A.Md", "Pemenang ditetapkan"],
+  [24, "Penetapan & Pengumuman Pemenang", "B.6574/PP.9.30/PL.450/IV/2026", "2026-04-01", "Content Creator", "La Ode Faden Bilfar, A.Md.Pi", "Pemenang ditetapkan"],
+  [25, "Penetapan & Pengumuman Pemenang", "B.6575/PP.9.30/PL.450/IV/2026", "2026-04-01", "Pramubakti", "Alda Wahdaniah, A.Md", "Pemenang ditetapkan"],
+  [26, "Penetapan & Pengumuman Pemenang", "B.6576/PP.9.30/PL.450/IV/2026", "2026-04-01", "Pengemudi Operasional", "Muhamat Weking, A.Md", "Pemenang ditetapkan"],
+  [27, "Nota Dinas Laporan Pemilihan", "2784/PP.9.30/PL.460/IV/2026", "2026-04-01", "Petugas Layanan Informasi", "Monica Huwae, A.Md", "Pejabat Pengadaan → PPK"],
+  [28, "Nota Dinas Laporan Pemilihan", "2785/PP.9.30/PL.460/IV/2026", "2026-04-01", "Content Creator", "La Ode Faden Bilfar, A.Md.Pi", "Pejabat Pengadaan → PPK"],
+  [29, "Nota Dinas Laporan Pemilihan", "2786/PP.9.30/PL.460/IV/2026", "2026-04-01", "Pramubakti", "Alda Wahdaniah, A.Md", "Pejabat Pengadaan → PPK"],
+  [30, "Nota Dinas Laporan Pemilihan", "2787/PP.9.30/PL.460/IV/2026", "2026-04-01", "Pengemudi Operasional", "Muhamat Weking, A.Md", "Pejabat Pengadaan → PPK"]
+];
+// Seed sekali (idempotent): data master PJLP TA 2026 (isi awal, bisa diedit admin di panel)
+const SEED_MASTER_PJLP = [
+  ["8106036310990002", "Monica Huwae, A.Md", "8106036310990002", "20.139.103.4-951.000", "Petugas Layanan Informasi", "Kampung Wernas, Sorong Selatan", 46889061, 46889061, "BNI Sorong - 1853717189 a.n. Monica Huwae", "D-III"],
+  ["7404190107000004", "La Ode Faden Bilfar, A.Md.Pi", "7404190107000004", "62.425.102.1-951.000", "Content Creator", "Jl. Kapitan Pattimura Kel. Suprau, Kec. Maladumes, Kota Sorong", 46889061, 46889061, "BNI Manokwari - 1170375422 a.n. La Ode Faden", "D-III"],
+  ["7309066406000002", "Alda Wahdaniah, A.Md", "7309066406000002", "50.442.774.1-951.000", "Pramubakti", "Jln. Kilang Blok.D RT.03/RW.03", 41130742, 41130742, "BNI Sorong - 1857635100 a.n. Alda Wahdaniah", "D-III"],
+  ["8171020808820008", "Muhamat Weking, A.Md", "8171020808820008", "20.505.893.6.-951.000", "Pengemudi Operasional", "Jl. Kapitan Pattimura, Suprau, Maladum Mes, Kota Sorong", 41130742, 41130742, "BNI Sorong - 1795316943 a.n. Muhamat Weking", "D-III"]
+];
 
 const DEFAULT_JAM_MASUK = "07:30";
 const DEFAULT_JAM_PULANG = "16:00";
@@ -51,7 +99,10 @@ function setup() {
   getSheetJurnal();
   getSheetIzin();
   getSheetPerangkat();
+  getSheetMasterPjlp();
+  getSheetRegisterDokumen();
   perbaikiHeader();
+  seedDataAwal();
   const p = props();
   if (!p.getProperty("ADMIN_EMAIL")) p.setProperty("ADMIN_EMAIL", "dausdaba@polikpsorong.ac.id");
   if (!p.getProperty("ADMIN_PASSWORD")) p.setProperty("ADMIN_PASSWORD", "admin123");
@@ -83,6 +134,9 @@ function doPost(e) {
       case "setStatusPerangkat": return setStatusPerangkat(data);
       case "hapusPerangkat":     return hapusPerangkat(data);
       case "simpanPengaturan":   return simpanPengaturan(data);
+      case "adminDataMaster":    return adminDataMaster(data);
+      case "simpanDataMaster":   return simpanDataMaster(data);
+      case "adminRegisterDokumen": return adminRegisterDokumen(data);
       default:
         return jsonOutput({ status: "error", message: "Aksi tidak dikenal: " + data.action });
     }
@@ -234,6 +288,57 @@ function hapusPerangkat(data) {
   return jsonOutput({ status: "success", message: "Perangkat dihapus." });
 }
 
+/* ============== DATA MASTER PJLP (admin-only, data sensitif) ============== */
+function getDataMaster() {
+  const values = getSheetMasterPjlp().getDataRange().getValues();
+  values.shift();
+  return values.map(function (r, i) {
+    return {
+      rowIndex: i + 2, nip: String(r[0]), nama: r[1], nik: String(r[2] || ""), npwp: String(r[3] || ""),
+      jabatan2026: r[4] || "", alamat: r[5] || "", nilaiHps: r[6] || "", hargaNegosiasi: r[7] || "",
+      rekening: r[8] || "", pendidikan: r[9] || "",
+      diperbarui: r[10] instanceof Date ? fmt(r[10], "yyyy-MM-dd HH:mm") : r[10]
+    };
+  });
+}
+function adminDataMaster(data) {
+  // Admin-only: mengembalikan data sensitif (NIK/NPWP/rekening). Endpoint mandiri PJLP
+  // (cekPerangkat) TIDAK memakai fungsi ini dan tidak pernah mengirim data ini ke device biasa.
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  return jsonOutput({ status: "success", master: getDataMaster() });
+}
+function simpanDataMaster(data) {
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  if (!data.nip) return jsonOutput({ status: "error", message: "NIP/ID wajib diisi." });
+  const sheet = getSheetMasterPjlp();
+  const existing = getDataMaster().filter(function (m) { return m.nip === String(data.nip); })[0];
+  const now = new Date();
+  const row = [
+    String(data.nip), data.nama || "", data.nik || "", data.npwp || "", data.jabatan2026 || "",
+    data.alamat || "", data.nilaiHps || "", data.hargaNegosiasi || "", data.rekening || "", data.pendidikan || "", now
+  ];
+  if (existing) sheet.getRange(existing.rowIndex, 1, 1, row.length).setValues([row]);
+  else sheet.appendRow(row);
+  return jsonOutput({ status: "success", message: "Data master tersimpan." });
+}
+
+/* ============== REGISTER DOKUMEN PENGADAAN (admin-only, referensi) ============== */
+function adminRegisterDokumen(data) {
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  const values = getSheetRegisterDokumen().getDataRange().getValues();
+  const headers = values.shift();
+  const out = values.map(function (row) {
+    const obj = {};
+    headers.forEach(function (h, i) {
+      let v = row[i];
+      if (v instanceof Date) v = fmt(v, "yyyy-MM-dd");
+      obj[h] = v;
+    });
+    return obj;
+  });
+  return jsonOutput({ status: "success", data: out });
+}
+
 function simpanPengaturan(data) {
   if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   const p = props();
@@ -343,7 +448,8 @@ function listPerangkat() {
 function perbaikiHeader() {
   // Menulis ulang baris-1 (header) agar cocok dengan urutan data yang ditulis kode.
   // Berguna untuk sheet lama yang headernya dibuat di versi sebelumnya.
-  [[SHEET_ABSEN, HEADER_ABSEN], [SHEET_JURNAL, HEADER_JURNAL], [SHEET_IZIN, HEADER_IZIN], [SHEET_PERANGKAT, HEADER_PERANGKAT]]
+  [[SHEET_ABSEN, HEADER_ABSEN], [SHEET_JURNAL, HEADER_JURNAL], [SHEET_IZIN, HEADER_IZIN], [SHEET_PERANGKAT, HEADER_PERANGKAT],
+   [SHEET_MASTER_PJLP, HEADER_MASTER_PJLP], [SHEET_REGISTER_DOKUMEN, HEADER_REGISTER_DOKUMEN]]
     .forEach(function (pair) {
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(pair[0]);
       if (!sheet) return;
@@ -351,10 +457,26 @@ function perbaikiHeader() {
     });
 }
 
+function seedDataAwal() {
+  // Idempotent: hanya mengisi jika sheet masih kosong (belum ada baris data).
+  const shReg = getSheetRegisterDokumen();
+  if (shReg.getDataRange().getNumRows() < 2 && SEED_REGISTER_DOKUMEN.length) {
+    shReg.getRange(2, 1, SEED_REGISTER_DOKUMEN.length, HEADER_REGISTER_DOKUMEN.length).setValues(SEED_REGISTER_DOKUMEN);
+  }
+  const shMaster = getSheetMasterPjlp();
+  if (shMaster.getDataRange().getNumRows() < 2 && SEED_MASTER_PJLP.length) {
+    const now = new Date();
+    const rows = SEED_MASTER_PJLP.map(function (r) { return r.concat([now]); });
+    shMaster.getRange(2, 1, rows.length, HEADER_MASTER_PJLP.length).setValues(rows);
+  }
+}
+
 function getSheetAbsen() { return getOrCreateSheet(SHEET_ABSEN, HEADER_ABSEN); }
 function getSheetJurnal() { return getOrCreateSheet(SHEET_JURNAL, HEADER_JURNAL); }
 function getSheetIzin() { return getOrCreateSheet(SHEET_IZIN, HEADER_IZIN); }
 function getSheetPerangkat() { return getOrCreateSheet(SHEET_PERANGKAT, HEADER_PERANGKAT); }
+function getSheetMasterPjlp() { return getOrCreateSheet(SHEET_MASTER_PJLP, HEADER_MASTER_PJLP); }
+function getSheetRegisterDokumen() { return getOrCreateSheet(SHEET_REGISTER_DOKUMEN, HEADER_REGISTER_DOKUMEN); }
 function getOrCreateSheet(nama, header) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(nama);

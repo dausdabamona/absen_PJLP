@@ -10,6 +10,8 @@
   let email = sessionStorage.getItem("pjlp_admin_email") || "";
   let semuaPerangkat = [];
   let filterAktif = "semua";
+  let dataMaster = [];
+  let dataRegister = [];
 
   /* ---------- Login ---------- */
   $("form-login").addEventListener("submit", function (ev) {
@@ -58,8 +60,21 @@
         $("s-email").value = s.adminEmail || "";
         semuaPerangkat = res.perangkat || [];
         render();
+        isiDropdownPegawai();
       })
       .catch(function (err) { $("perangkat-info").textContent = "Gagal: " + err.message; });
+  }
+
+  function isiDropdownPegawai() {
+    var opsi = semuaPerangkat
+      .filter(function (d) { return d.status === "disetujui"; })
+      .map(function (d) { return '<option value="' + esc(d.nip || "") + '" data-device="' + esc(d.deviceId) + '" data-nama="' + esc(d.nama) + '">' + esc(d.nama) + (d.nip ? " (" + esc(d.nip) + ")" : "") + "</option>"; })
+      .join("");
+    ["m-pilih", "dok-pilih"].forEach(function (id) {
+      var sel = $(id), nilaiLama = sel.value;
+      sel.innerHTML = '<option value="">— pilih pegawai terdaftar —</option>' + opsi;
+      sel.value = nilaiLama;
+    });
   }
 
   /* ---------- Tabel ---------- */
@@ -95,13 +110,26 @@
     }).catch(function (err) { alert("Gagal: " + err.message); });
   }
 
-  document.querySelectorAll(".tab").forEach(function (t) {
+  document.querySelectorAll(".tab[data-filter]").forEach(function (t) {
     t.addEventListener("click", function () {
-      document.querySelectorAll(".tab").forEach(function (x) { x.classList.remove("aktif"); });
+      document.querySelectorAll(".tab[data-filter]").forEach(function (x) { x.classList.remove("aktif"); });
       t.classList.add("aktif"); filterAktif = t.getAttribute("data-filter"); render();
     });
   });
   $("btn-refresh").addEventListener("click", muatData);
+
+  /* ---------- Navigasi dashboard (Pengaturan / Data PJLP / Register / Buat Dokumen) ---------- */
+  var DASH_PANEL = { utama: $("dash-utama"), master: $("dash-master"), register: $("dash-register"), dokumen: $("dash-dokumen") };
+  document.querySelectorAll(".tab[data-dash]").forEach(function (t) {
+    t.addEventListener("click", function () {
+      document.querySelectorAll(".tab[data-dash]").forEach(function (x) { x.classList.remove("aktif"); });
+      t.classList.add("aktif");
+      var target = t.getAttribute("data-dash");
+      Object.keys(DASH_PANEL).forEach(function (k) { DASH_PANEL[k].classList.toggle("hidden", k !== target); });
+      if (target === "master" && !dataMaster.length && semuaPerangkat.length) muatDataMaster();
+      if (target === "register" && !dataRegister.length) muatRegisterDokumen();
+    });
+  });
 
   /* ---------- Lokasi saya ---------- */
   $("btn-lokasi-saya").addEventListener("click", function () {
@@ -155,6 +183,129 @@
     sessionStorage.removeItem("pjlp_admin_pw");
     location.replace("index.html?absen=1");
   });
+
+  /* ============== Data Master PJLP ============== */
+  function muatDataMaster() {
+    $("master-info").textContent = "Memuat...";
+    API.post({ action: "adminDataMaster", email: email, password: password, deviceId: "" })
+      .then(function (res) {
+        if (res.status !== "success") { $("master-info").textContent = res.message || "Gagal."; return; }
+        dataMaster = res.master || [];
+        renderMaster();
+      })
+      .catch(function (err) { $("master-info").textContent = "Gagal: " + err.message; });
+  }
+  function rupiahFmt(n) { n = String(parseInt(n, 10) || 0); return n.replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+  function renderMaster() {
+    var tbody = $("master-body");
+    if (!dataMaster.length) { tbody.innerHTML = ""; $("master-info").textContent = "Belum ada data master tersimpan."; return; }
+    $("master-info").textContent = "Total " + dataMaster.length + " data master.";
+    tbody.innerHTML = dataMaster.map(function (m) {
+      return "<tr><td>" + esc(m.nama) + "</td><td>" + esc(m.jabatan2026 || "-") + "</td><td class=\"mono small\">" + esc(m.nik || "-") +
+        "</td><td>Rp " + rupiahFmt(m.hargaNegosiasi) + "</td><td>" + esc(m.diperbarui || "") +
+        '</td><td><button type="button" class="mini aksi-master" data-nip="' + esc(m.nip) + '">Edit</button></td></tr>';
+    }).join("");
+  }
+  $("master-body").addEventListener("click", function (ev) {
+    var btn = ev.target.closest(".aksi-master"); if (!btn) return;
+    var nip = btn.getAttribute("data-nip");
+    var m = dataMaster.filter(function (x) { return x.nip === nip; })[0];
+    if (!m) return;
+    $("m-pilih").value = nip; isiFormMasterDariPegawai();
+    $("m-nik").value = m.nik || ""; $("m-npwp").value = m.npwp || "";
+    $("m-jabatan").value = m.jabatan2026 || ""; $("m-alamat").value = m.alamat || "";
+    $("m-hps").value = m.nilaiHps || ""; $("m-negosiasi").value = m.hargaNegosiasi || "";
+    $("m-rekening").value = m.rekening || ""; $("m-pendidikan").value = m.pendidikan || "";
+    window.scrollTo({ top: $("form-master").getBoundingClientRect().top + window.scrollY - 20, behavior: "smooth" });
+  });
+
+  function isiFormMasterDariPegawai() {
+    var nip = $("m-pilih").value; $("m-nip").value = nip;
+    if (!nip) return;
+    var existing = dataMaster.filter(function (m) { return m.nip === nip; })[0];
+    if (existing) {
+      $("m-nik").value = existing.nik || ""; $("m-npwp").value = existing.npwp || "";
+      $("m-jabatan").value = existing.jabatan2026 || ""; $("m-alamat").value = existing.alamat || "";
+      $("m-hps").value = existing.nilaiHps || ""; $("m-negosiasi").value = existing.hargaNegosiasi || "";
+      $("m-rekening").value = existing.rekening || ""; $("m-pendidikan").value = existing.pendidikan || "";
+    } else {
+      ["m-nik", "m-npwp", "m-jabatan", "m-alamat", "m-hps", "m-negosiasi", "m-rekening", "m-pendidikan"].forEach(function (id) { $(id).value = ""; });
+    }
+  }
+  $("m-pilih").addEventListener("change", isiFormMasterDariPegawai);
+
+  $("form-master").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var pesan = $("master-pesan"), btn = $("btn-master-simpan");
+    var nip = $("m-pilih").value;
+    if (!nip) { alert("Pilih pegawai terlebih dahulu."); return; }
+    var opt = $("m-pilih").selectedOptions[0];
+    btn.disabled = true; btn.textContent = "Menyimpan...";
+    API.post({
+      action: "simpanDataMaster", email: email, password: password, deviceId: "",
+      nip: nip, nama: opt ? opt.getAttribute("data-nama") : "",
+      nik: $("m-nik").value.trim(), npwp: $("m-npwp").value.trim(),
+      jabatan2026: $("m-jabatan").value.trim(), alamat: $("m-alamat").value.trim(),
+      nilaiHps: $("m-hps").value.trim(), hargaNegosiasi: $("m-negosiasi").value.trim(),
+      rekening: $("m-rekening").value.trim(), pendidikan: $("m-pendidikan").value.trim()
+    }).then(function (res) {
+      pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
+      pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
+      pesan.classList.remove("hidden");
+      if (res.status === "success") muatDataMaster();
+    }).catch(function (err) {
+      pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
+    }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Data Master"; });
+  });
+
+  /* ============== Register Dokumen (referensi) ============== */
+  function muatRegisterDokumen() {
+    $("register-info").textContent = "Memuat...";
+    API.post({ action: "adminRegisterDokumen", email: email, password: password, deviceId: "" })
+      .then(function (res) {
+        if (res.status !== "success") { $("register-info").textContent = res.message || "Gagal."; return; }
+        dataRegister = res.data || [];
+        renderRegister();
+      })
+      .catch(function (err) { $("register-info").textContent = "Gagal: " + err.message; });
+  }
+  function renderRegister() {
+    var q = $("reg-cari").value.trim().toLowerCase();
+    var data = !q ? dataRegister : dataRegister.filter(function (r) {
+      return [r["Nama PJLP"], r["Jenis Dokumen"], r["Nomor Surat"], r["Jabatan PJLP"]].join(" ").toLowerCase().indexOf(q) !== -1;
+    });
+    var tbody = $("register-body");
+    if (!data.length) { tbody.innerHTML = ""; $("register-info").textContent = "Tidak ada dokumen untuk pencarian ini."; return; }
+    $("register-info").textContent = "Menampilkan " + data.length + " dari " + dataRegister.length + " dokumen.";
+    tbody.innerHTML = data.map(function (r) {
+      return "<tr><td>" + esc(r["No File"] || "") + "</td><td>" + esc(r["Jenis Dokumen"] || "") + "</td><td>" + esc(r["Nomor Surat"] || "") +
+        "</td><td>" + esc(r["Tanggal"] || "") + "</td><td>" + esc(r["Jabatan PJLP"] || "") + "</td><td>" + esc(r["Nama PJLP"] || "") +
+        "</td><td>" + esc(r["Keterangan"] || "") + "</td></tr>";
+    }).join("");
+  }
+  $("reg-cari").addEventListener("input", renderRegister);
+
+  /* ============== Buat Dokumen per PJLP ============== */
+  $("dok-pilih").addEventListener("change", function () {
+    var ada = !!this.value;
+    ["btn-dok-jurnal", "btn-dok-rekap", "btn-dok-ba", "btn-dok-kuitansi"].forEach(function (id) { $(id).disabled = !ada; });
+  });
+  function targetTerpilih() {
+    var sel = $("dok-pilih"), opt = sel.selectedOptions[0];
+    if (!opt || !sel.value) return null;
+    return { nip: sel.value, nama: opt.getAttribute("data-nama") || "", deviceId: opt.getAttribute("data-device") || "" };
+  }
+  function bukaDokumen(halaman) {
+    var t = targetTerpilih(); if (!t) return;
+    sessionStorage.setItem("pjlp_target_nip", t.nip);
+    sessionStorage.setItem("pjlp_target_nama", t.nama);
+    sessionStorage.setItem("pjlp_target_deviceid", t.deviceId);
+    window.open(halaman, "_blank");
+  }
+  $("btn-dok-jurnal").addEventListener("click", function () { bukaDokumen("laporan.html"); });
+  $("btn-dok-rekap").addEventListener("click", function () { window.open("rekap.html", "_blank"); });
+  $("btn-dok-ba").addEventListener("click", function () { bukaDokumen("berita-acara.html"); });
+  $("btn-dok-kuitansi").addEventListener("click", function () { bukaDokumen("kuitansi.html"); });
 
   /* ---------- Auto-login ---------- */
   if (password && email && !API.belumDikonfigurasi()) masukDashboard();

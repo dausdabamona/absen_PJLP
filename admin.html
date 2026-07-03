@@ -38,6 +38,14 @@
 
     <!-- Dashboard -->
     <main id="seksi-dashboard" class="hidden">
+      <div class="tab-status" style="margin-bottom:16px;">
+        <button class="tab aktif" data-dash="utama">⚙️ Pengaturan &amp; Perangkat</button>
+        <button class="tab" data-dash="master">🧾 Data PJLP</button>
+        <button class="tab" data-dash="register">📚 Register Dokumen</button>
+        <button class="tab" data-dash="dokumen">📄 Buat Dokumen</button>
+      </div>
+
+      <div id="dash-utama">
       <div class="card" style="margin-bottom:16px;">
         <h2 class="seksi-judul">📍 Lokasi & Pengaturan</h2>
         <p class="seksi-info">Absen hanya diterima dalam radius titik di bawah (kecuali Mode Uji Coba aktif).</p>
@@ -103,6 +111,71 @@
             <thead><tr><th>Nama</th><th>NIP/ID</th><th>Status</th><th>Didaftarkan</th><th>Device ID</th><th>Aksi</th></tr></thead>
             <tbody id="perangkat-body"></tbody>
           </table>
+        </div>
+      </div>
+      </div><!-- /dash-utama -->
+
+      <!-- Data Master PJLP -->
+      <div id="dash-master" class="card hidden">
+        <h2 class="seksi-judul">🧾 Data Master PJLP</h2>
+        <p class="seksi-info">Data sensitif (NIK, NPWP, rekening) — hanya tersimpan &amp; terlihat lewat panel admin ini, tidak pernah dikirim ke halaman mandiri PJLP.</p>
+        <form id="form-master" autocomplete="off">
+          <label>Pilih Pegawai
+            <select id="m-pilih"><option value="">— pilih pegawai terdaftar —</option></select>
+          </label>
+          <input type="hidden" id="m-nip">
+          <div class="grid2">
+            <label>NIK<input type="text" id="m-nik" inputmode="numeric"></label>
+            <label>NPWP<input type="text" id="m-npwp" placeholder="00.000.000.0-000.000"></label>
+          </div>
+          <label>Jabatan 2026<input type="text" id="m-jabatan" placeholder="mis. Pramubakti"></label>
+          <label>Alamat<input type="text" id="m-alamat"></label>
+          <div class="grid2">
+            <label>Nilai HPS (Rp)<input type="text" id="m-hps" inputmode="numeric"></label>
+            <label>Harga Negosiasi (Rp)<input type="text" id="m-negosiasi" inputmode="numeric"></label>
+          </div>
+          <label>Data Rekening<input type="text" id="m-rekening" placeholder="Bank - No. Rekening a.n. Nama"></label>
+          <label>Pendidikan<input type="text" id="m-pendidikan" placeholder="mis. D-III"></label>
+          <button type="submit" id="btn-master-simpan" class="submit">Simpan Data Master</button>
+        </form>
+        <div id="master-pesan" class="pesan hidden"></div>
+
+        <hr class="garis">
+        <div id="master-info" class="status muted">Memuat...</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nama</th><th>Jabatan 2026</th><th>NIK</th><th>Harga Negosiasi</th><th>Diperbarui</th><th>Aksi</th></tr></thead>
+            <tbody id="master-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Register Dokumen -->
+      <div id="dash-register" class="card hidden">
+        <h2 class="seksi-judul">📚 Register Dokumen Pengadaan</h2>
+        <p class="seksi-info">Arsip referensi riwayat dokumen pengadaan PJLP (tidak memengaruhi pembuatan dokumen baru).</p>
+        <label>Cari <span class="opsional">(nama / jenis dokumen / nomor)</span><input type="text" id="reg-cari" placeholder="Ketik untuk mencari..."></label>
+        <div id="register-info" class="status muted">Memuat...</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>No</th><th>Jenis Dokumen</th><th>Nomor Surat</th><th>Tanggal</th><th>Jabatan</th><th>Nama</th><th>Keterangan</th></tr></thead>
+            <tbody id="register-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Buat Dokumen -->
+      <div id="dash-dokumen" class="card hidden">
+        <h2 class="seksi-judul">📄 Buat Dokumen per PJLP</h2>
+        <p class="seksi-info">Pilih pegawai, lalu buka dokumen yang diinginkan — data (termasuk data master) akan otomatis terisi.</p>
+        <label>Pilih Pegawai
+          <select id="dok-pilih"><option value="">— pilih pegawai terdaftar —</option></select>
+        </label>
+        <div id="dok-tombol" class="filter-actions" style="flex-wrap:wrap; margin-top:12px;">
+          <button type="button" id="btn-dok-jurnal" class="mini" disabled>🗒️ Cetak Jurnal Bulanan</button>
+          <button type="button" id="btn-dok-rekap" class="mini" disabled>📋 Lihat Rekap Absen</button>
+          <button type="button" id="btn-dok-ba" class="mini" disabled>📑 Buat BAST / BAPP / BAP</button>
+          <button type="button" id="btn-dok-kuitansi" class="mini" disabled>🧾 Buat Kuitansi</button>
         </div>
       </div>
     </main>

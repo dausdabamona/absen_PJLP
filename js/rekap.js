@@ -296,5 +296,8 @@
   $("f-admin").addEventListener("change", muatData);
 
   $("f-bulan").value = bulanIni();
+  // Kalau dibuka dari Panel Admin (sudah login), isi otomatis password admin
+  var sesiAdminPw = sessionStorage.getItem("pjlp_admin_pw");
+  if (sesiAdminPw) $("f-admin").value = sesiAdminPw;
   muatData();
 })();

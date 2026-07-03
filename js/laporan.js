@@ -91,8 +91,38 @@
   $("l-bulan").value = bulanIni();
   $("l-tgl").value = hariIni();
 
-  // Muat jurnal perangkat ini + prefill identitas
-  if (typeof API !== "undefined" && !API.belumDikonfigurasi()) {
+  /* ---------- Mode Admin: laporan untuk PJLP lain yg dipilih di panel admin ---------- */
+  var adminPw = sessionStorage.getItem("pjlp_admin_pw") || "";
+  var targetNip = sessionStorage.getItem("pjlp_target_nip") || "";
+  var targetNama = sessionStorage.getItem("pjlp_target_nama") || "";
+  var targetDeviceId = sessionStorage.getItem("pjlp_target_deviceid") || "";
+  var modeAdmin = !!(adminPw && targetNip);
+
+  if (typeof API === "undefined" || API.belumDikonfigurasi()) {
+    $("lap-status").textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL).";
+    $("lap-status").className = "status err";
+  } else if (modeAdmin) {
+    $("banner-admin").classList.remove("hidden");
+    $("banner-admin-nama").textContent = targetNama;
+    if (targetNama && !$("l-nama").value) $("l-nama").value = targetNama;
+    if (targetNip && !$("l-nip").value) $("l-nip").value = targetNip;
+
+    $("lap-status").textContent = "Memuat jurnal (mode admin)...";
+    API.post({ action: "rekapJurnal", adminPassword: adminPw })
+      .then(function (res) {
+        var semua = (res && res.data) || [];
+        jurnalRows = semua.filter(function (r) {
+          return (targetDeviceId && String(r["Device ID"]) === targetDeviceId) || String(r["NIP/ID"]) === targetNip;
+        });
+        $("lap-status").textContent = jurnalRows.length
+          ? ("Ditemukan " + jurnalRows.length + " catatan jurnal untuk " + targetNama + ".")
+          : ("Belum ada catatan jurnal untuk " + targetNama + ".");
+        $("lap-status").className = "status muted";
+        render();
+      })
+      .catch(function (err) { $("lap-status").textContent = "Gagal memuat jurnal: " + err.message; $("lap-status").className = "status err"; });
+  } else {
+    // Mode mandiri (perilaku asli, tidak berubah): jurnal perangkat ini saja
     API.post({ action: "cekPerangkat" }).then(function (res) {
       if (res && res.status === "success" && res.terdaftar) {
         if (res.nama && !$("l-nama").value) $("l-nama").value = res.nama;
@@ -111,9 +141,6 @@
         render();
       })
       .catch(function (err) { $("lap-status").textContent = "Gagal memuat jurnal: " + err.message; $("lap-status").className = "status err"; });
-  } else {
-    $("lap-status").textContent = "Aplikasi belum dikonfigurasi (APPS_SCRIPT_URL).";
-    $("lap-status").className = "status err";
   }
 
   render();
