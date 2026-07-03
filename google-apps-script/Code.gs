@@ -208,11 +208,19 @@ function jurnal(data) {
   if (!data.kegiatan || !String(data.kegiatan).trim()) return jsonOutput({ status: "error", message: "Deskripsi kegiatan wajib diisi." });
   if (!data.foto) return jsonOutput({ status: "error", message: "Foto kegiatan wajib diambil." });
 
-  const now = new Date();
-  const fotoUrl = simpanFoto(data.foto, dev.nama, "jurnal", now);
+  const asli = new Date();
+  let waktu = asli;
+  // Jurnal susulan: tanggalKegiatan (YYYY-MM-DD) opsional untuk mencatat hari yang telah lewat.
+  // Jam tetap memakai jam submit asli; tanggal masa depan diabaikan (dianggap jurnal hari ini).
+  if (data.tanggalKegiatan && /^\d{4}-\d{2}-\d{2}$/.test(data.tanggalKegiatan)) {
+    const bagian = data.tanggalKegiatan.split("-").map(Number);
+    const dipilih = new Date(bagian[0], bagian[1] - 1, bagian[2], asli.getHours(), asli.getMinutes(), asli.getSeconds());
+    if (dipilih <= asli) waktu = dipilih;
+  }
+  const fotoUrl = simpanFoto(data.foto, dev.nama, "jurnal", asli);
   const linkLok = (data.lat && data.lng) ? "https://maps.google.com/?q=" + data.lat + "," + data.lng : "";
   getSheetJurnal().appendRow([
-    now, dev.deviceId, dev.nama, dev.nip, fmt(now, "yyyy-MM-dd"), fmt(now, "HH:mm:ss"),
+    waktu, dev.deviceId, dev.nama, dev.nip, fmt(waktu, "yyyy-MM-dd"), fmt(waktu, "HH:mm:ss"),
     String(data.kegiatan).trim(), fotoUrl, data.lat || "", data.lng || "", linkLok
   ]);
   return jsonOutput({ status: "success", message: "Jurnal kegiatan berhasil disimpan." });

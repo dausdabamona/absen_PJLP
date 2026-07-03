@@ -32,6 +32,7 @@
   };
 
   let lokasiAbsen = null, lokasiJurnal = null, fotoJurnal = null;
+  let lokasiSusulan = null, fotoSusulan = null;
   let reminderTimer = null;
 
   $("device-id-singkat").textContent = deviceId.slice(0, 8) + "…";
@@ -41,6 +42,7 @@
   const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   function waktuLokal() { const n = new Date(); return new Date(n.getTime() + n.getTimezoneOffset() * 60000 + CONFIG.OFFSET_JAM * 3600000); }
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function hariIni() { const d = waktuLokal(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function updateJam() {
     const d = waktuLokal();
     elJamTime.textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + " " + CONFIG.LABEL_ZONA;
@@ -189,7 +191,7 @@
   $("btn-cek-ulang2").addEventListener("click", cekStatus);
 
   /* ---------- Tab Absen / Jurnal / Izin ---------- */
-  const PANES = ["pane-absen", "pane-jurnal", "pane-izin"];
+  const PANES = ["pane-absen", "pane-jurnal", "pane-jurnal-susulan", "pane-izin"];
   document.querySelectorAll("#seksi-absen .tab").forEach(function (t) {
     t.addEventListener("click", function () {
       document.querySelectorAll("#seksi-absen .tab").forEach(function (x) { x.classList.remove("aktif"); });
@@ -258,6 +260,44 @@
       })
       .catch(function (err) { tampilkanPesan("Gagal mengirim: " + err.message, false); })
       .finally(function () { btn.disabled = false; btn.textContent = "Simpan Jurnal"; });
+  });
+
+  /* ---------- Jurnal Susulan (hari yang telah lewat) ---------- */
+  $("su-tanggal").max = hariIni();
+  const inputSuFoto = $("su-foto");
+  $("btn-su-foto").addEventListener("click", function () { inputSuFoto.click(); });
+  inputSuFoto.addEventListener("change", function () {
+    const file = inputSuFoto.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      kompresGambar(e.target.result, 1000, 0.7, function (dataUrl) {
+        fotoSusulan = dataUrl; $("su-preview").src = dataUrl;
+        $("su-preview-wrap").classList.remove("hidden"); $("btn-su-foto").textContent = "Ganti Foto";
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+  $("btn-su-lokasi").addEventListener("click", function () { ambilLokasi($("su-status-lokasi"), $("btn-su-lokasi"), function (l) { lokasiSusulan = l; }); });
+  $("form-jurnal-susulan").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    const tanggal = $("su-tanggal").value;
+    if (!tanggal) { tampilkanPesan("Tanggal kegiatan wajib diisi.", false); return; }
+    if (tanggal > hariIni()) { tampilkanPesan("Tanggal tidak boleh di masa depan.", false); return; }
+    const kegiatan = $("su-kegiatan").value.trim();
+    if (!kegiatan) { tampilkanPesan("Deskripsi kegiatan wajib diisi.", false); return; }
+    if (!fotoSusulan) { tampilkanPesan("Foto kegiatan wajib diambil.", false); return; }
+    const btn = $("btn-su-submit"); btn.disabled = true; btn.textContent = "Menyimpan..."; pesan.classList.add("hidden");
+    API.post({ action: "jurnal", kegiatan: kegiatan, foto: fotoSusulan, tanggalKegiatan: tanggal, lat: lokasiSusulan ? lokasiSusulan.lat : "", lng: lokasiSusulan ? lokasiSusulan.lng : "" })
+      .then(function (res) {
+        if (res.status === "success") {
+          tampilkanPesan("✔ " + res.message, true);
+          fotoSusulan = null; lokasiSusulan = null; $("su-kegiatan").value = ""; $("su-tanggal").value = "";
+          $("su-preview-wrap").classList.add("hidden"); $("btn-su-foto").textContent = "Ambil / Pilih Foto";
+          $("su-status-lokasi").textContent = "Lokasi belum diambil."; $("su-status-lokasi").className = "status muted";
+        } else { tampilkanPesan(res.message || "Gagal menyimpan jurnal susulan.", false); if (res.code && res.code !== "disetujui") cekStatus(); }
+      })
+      .catch(function (err) { tampilkanPesan("Gagal mengirim: " + err.message, false); })
+      .finally(function () { btn.disabled = false; btn.textContent = "Simpan Jurnal Susulan"; });
   });
 
   /* ---------- Izin / Tidak Hadir ---------- */

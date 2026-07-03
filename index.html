@@ -65,6 +65,7 @@
         <div class="tab-status">
           <button type="button" class="tab aktif" data-pane="pane-absen">Absen</button>
           <button type="button" class="tab" data-pane="pane-jurnal">Jurnal</button>
+          <button type="button" class="tab" data-pane="pane-jurnal-susulan">Jurnal Susulan</button>
           <button type="button" class="tab" data-pane="pane-izin">Izin/Sakit</button>
         </div>
 
@@ -128,6 +129,30 @@
               <div id="j-status-lokasi" class="status muted">Lokasi belum diambil.</div>
             </div>
             <button type="submit" id="btn-j-submit" class="submit">Simpan Jurnal</button>
+          </form>
+        </div>
+
+        <div id="pane-jurnal-susulan" class="hidden">
+          <p class="seksi-info">Lupa mengisi jurnal di hari-hari sebelumnya? Isi di sini — bisa untuk tanggal berapa pun sejak awal kontrak (tidak boleh tanggal yang belum terjadi).</p>
+          <form id="form-jurnal-susulan" autocomplete="off">
+            <label>Tanggal Kegiatan<input type="date" id="su-tanggal" required></label>
+            <label>Deskripsi Kegiatan
+              <textarea id="su-kegiatan" rows="3" placeholder="Tuliskan kegiatan yang dilakukan pada tanggal tersebut..." required></textarea>
+            </label>
+            <div class="field-group">
+              <div class="field-head"><span>📷 Foto Kegiatan</span></div>
+              <input type="file" id="su-foto" accept="image/*" hidden>
+              <button type="button" id="btn-su-foto" class="photo-btn">Ambil / Pilih Foto</button>
+              <div id="su-preview-wrap" class="preview hidden"><img id="su-preview" alt="Pratinjau"></div>
+            </div>
+            <div class="field-group">
+              <div class="field-head">
+                <span>📍 Lokasi <span class="opsional">(opsional)</span></span>
+                <button type="button" id="btn-su-lokasi" class="mini">Ambil Lokasi</button>
+              </div>
+              <div id="su-status-lokasi" class="status muted">Lokasi belum diambil.</div>
+            </div>
+            <button type="submit" id="btn-su-submit" class="submit">Simpan Jurnal Susulan</button>
           </form>
         </div>
 
