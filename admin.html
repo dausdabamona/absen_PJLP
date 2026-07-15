@@ -8,44 +8,50 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="app wide">
-    <header class="topbar">
-      <div class="brand">
+  <!-- Login -->
+  <main id="seksi-login" class="app card">
+    <div class="brand" style="justify-content:center; margin-bottom:18px;">
+      <span class="logo">🛡️</span>
+      <div>
+        <h1>Panel Admin</h1>
+        <p class="subtitle">Absensi PJLP</p>
+      </div>
+    </div>
+    <h2 class="seksi-judul">Masuk Admin</h2>
+    <p class="seksi-info">Hanya admin terdaftar yang dapat masuk.</p>
+    <form id="form-login" autocomplete="off">
+      <label>Email Admin<input type="email" id="l-email" placeholder="dausdaba@polikpsorong.ac.id" required></label>
+      <label>Password Admin<input type="password" id="password" required></label>
+      <button type="submit" id="btn-login" class="submit">Masuk</button>
+    </form>
+    <div id="login-pesan" class="status err"></div>
+  </main>
+
+  <!-- Dashboard: shell gaya desktop (sidebar + konten) -->
+  <div class="admin-shell hidden" id="seksi-dashboard">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">
         <span class="logo">🛡️</span>
         <div>
           <h1>Panel Admin</h1>
           <p class="subtitle">Absensi PJLP</p>
         </div>
       </div>
-      <span class="header-links">
-        <a class="link-rekap" href="rekap.html">Rekap</a>
-        <a class="link-rekap" href="index.html?absen=1">Absen</a>
-        <a class="link-rekap" href="#" id="link-keluar">Keluar</a>
-      </span>
-    </header>
-
-    <!-- Login -->
-    <main id="seksi-login" class="card">
-      <h2 class="seksi-judul">Masuk Admin</h2>
-      <p class="seksi-info">Hanya admin terdaftar yang dapat masuk.</p>
-      <form id="form-login" autocomplete="off">
-        <label>Email Admin<input type="email" id="l-email" placeholder="dausdaba@polikpsorong.ac.id" required></label>
-        <label>Password Admin<input type="password" id="password" required></label>
-        <button type="submit" id="btn-login" class="submit">Masuk</button>
-      </form>
-      <div id="login-pesan" class="status err"></div>
-    </main>
-
-    <!-- Dashboard -->
-    <main id="seksi-dashboard" class="hidden">
-      <div class="tab-status" style="margin-bottom:16px;">
-        <button class="tab aktif" data-dash="beranda">🏠 Dashboard</button>
-        <button class="tab" data-dash="utama">⚙️ Pengaturan &amp; Perangkat</button>
-        <button class="tab" data-dash="master">🧾 Data PJLP</button>
-        <button class="tab" data-dash="register">📚 Register Dokumen</button>
-        <button class="tab" data-dash="dokumen">📄 Buat Dokumen</button>
+      <nav class="admin-nav">
+        <button class="tab aktif" data-dash="beranda">🏠 <span>Dashboard</span></button>
+        <button class="tab" data-dash="utama">⚙️ <span>Pengaturan &amp; Perangkat</span></button>
+        <button class="tab" data-dash="master">🧾 <span>Data PJLP</span></button>
+        <button class="tab" data-dash="register">📚 <span>Register Dokumen</span></button>
+        <button class="tab" data-dash="dokumen">📄 <span>Buat Dokumen</span></button>
+      </nav>
+      <div class="admin-sidebar-footer">
+        <a class="link-rekap" href="rekap.html">📊 Rekap</a>
+        <a class="link-rekap" href="index.html?absen=1">🕓 Absen</a>
+        <a class="link-rekap" href="#" id="link-keluar">🚪 Keluar</a>
       </div>
+    </aside>
 
+    <main class="admin-main">
       <!-- Dashboard / Beranda -->
       <div id="dash-beranda" class="card">
         <div class="dash-head">
