@@ -39,13 +39,60 @@
     <!-- Dashboard -->
     <main id="seksi-dashboard" class="hidden">
       <div class="tab-status" style="margin-bottom:16px;">
-        <button class="tab aktif" data-dash="utama">⚙️ Pengaturan &amp; Perangkat</button>
+        <button class="tab aktif" data-dash="beranda">🏠 Dashboard</button>
+        <button class="tab" data-dash="utama">⚙️ Pengaturan &amp; Perangkat</button>
         <button class="tab" data-dash="master">🧾 Data PJLP</button>
         <button class="tab" data-dash="register">📚 Register Dokumen</button>
         <button class="tab" data-dash="dokumen">📄 Buat Dokumen</button>
       </div>
 
-      <div id="dash-utama">
+      <!-- Dashboard / Beranda -->
+      <div id="dash-beranda" class="card">
+        <div class="dash-head">
+          <h2 class="seksi-judul" style="flex:1;">🏠 Dashboard Kepegawaian PJLP</h2>
+          <span id="dash-tanggal" class="status muted"></span>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-biru">
+            <div class="kpi-angka" id="kpi-total">-</div>
+            <div class="kpi-label">👥 Pegawai Aktif</div>
+          </div>
+          <div class="kpi-card kpi-hijau">
+            <div class="kpi-angka" id="kpi-hadir">-</div>
+            <div class="kpi-label">✅ Hadir Hari Ini</div>
+          </div>
+          <div class="kpi-card kpi-merah">
+            <div class="kpi-angka" id="kpi-telat">-</div>
+            <div class="kpi-label">⏰ Terlambat Hari Ini</div>
+          </div>
+          <div class="kpi-card kpi-abu">
+            <div class="kpi-angka" id="kpi-belum">-</div>
+            <div class="kpi-label">❔ Belum Absen</div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-panel">
+            <div class="dash-panel-judul">🏥 Sakit / Izin / Cuti Aktif Hari Ini</div>
+            <div id="dash-izin-aktif" class="status muted">Memuat...</div>
+          </div>
+          <div class="dash-panel">
+            <div class="dash-panel-judul">📋 Perlu Tindakan Admin</div>
+            <div id="dash-tindakan" class="status muted">Memuat...</div>
+          </div>
+          <div class="dash-panel">
+            <div class="dash-panel-judul">📅 Kontrak Segera Berakhir (≤ 60 hari)</div>
+            <div id="dash-kontrak" class="status muted">Memuat...</div>
+          </div>
+          <div class="dash-panel dash-panel-lebar">
+            <div class="dash-panel-judul">📊 Ringkasan Bulan Ini — Keterlambatan</div>
+            <div id="dash-ringkasan" class="status muted">Memuat...</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="dash-utama" class="hidden">
       <div class="card" style="margin-bottom:16px;">
         <h2 class="seksi-judul">📍 Lokasi & Pengaturan</h2>
         <p class="seksi-info">Absen hanya diterima dalam radius titik di bawah (kecuali Mode Uji Coba aktif).</p>
@@ -136,6 +183,10 @@
           </div>
           <label>Data Rekening<input type="text" id="m-rekening" placeholder="Bank - No. Rekening a.n. Nama"></label>
           <label>Pendidikan<input type="text" id="m-pendidikan" placeholder="mis. D-III"></label>
+          <div class="grid2">
+            <label>Kontrak Mulai<input type="date" id="m-kontrak-mulai"></label>
+            <label>Kontrak Selesai<input type="date" id="m-kontrak-selesai"></label>
+          </div>
           <button type="submit" id="btn-master-simpan" class="submit">Simpan Data Master</button>
         </form>
         <div id="master-pesan" class="pesan hidden"></div>
@@ -144,7 +195,7 @@
         <div id="master-info" class="status muted">Memuat...</div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nama</th><th>Jabatan 2026</th><th>NIK</th><th>Harga Negosiasi</th><th>Diperbarui</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Nama</th><th>Jabatan 2026</th><th>NIK</th><th>Harga Negosiasi</th><th>Kontrak Selesai</th><th>Diperbarui</th><th>Aksi</th></tr></thead>
             <tbody id="master-body"></tbody>
           </table>
         </div>

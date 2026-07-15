@@ -43,7 +43,8 @@ const HEADER_PERANGKAT = [
 ];
 const HEADER_MASTER_PJLP = [
   "NIP/ID", "Nama", "NIK", "NPWP", "Jabatan 2026", "Alamat",
-  "Nilai HPS (Rp)", "Harga Negosiasi (Rp)", "Data Rekening", "Pendidikan", "Diperbarui"
+  "Nilai HPS (Rp)", "Harga Negosiasi (Rp)", "Data Rekening", "Pendidikan",
+  "Tanggal Mulai Kontrak", "Tanggal Selesai Kontrak", "Diperbarui"
 ];
 const HEADER_REGISTER_DOKUMEN = [
   "No File", "Jenis Dokumen", "Nomor Surat", "Tanggal", "Jabatan PJLP", "Nama PJLP", "Keterangan"
@@ -82,10 +83,10 @@ const SEED_REGISTER_DOKUMEN = [
 ];
 // Seed sekali (idempotent): data master PJLP TA 2026 (isi awal, bisa diedit admin di panel)
 const SEED_MASTER_PJLP = [
-  ["8106036310990002", "Monica Huwae, A.Md", "8106036310990002", "20.139.103.4-951.000", "Petugas Layanan Informasi", "Kampung Wernas, Sorong Selatan", 46889061, 46889061, "BNI Sorong - 1853717189 a.n. Monica Huwae", "D-III"],
-  ["7404190107000004", "La Ode Faden Bilfar, A.Md.Pi", "7404190107000004", "62.425.102.1-951.000", "Content Creator", "Jl. Kapitan Pattimura Kel. Suprau, Kec. Maladumes, Kota Sorong", 46889061, 46889061, "BNI Manokwari - 1170375422 a.n. La Ode Faden", "D-III"],
-  ["7309066406000002", "Alda Wahdaniah, A.Md", "7309066406000002", "50.442.774.1-951.000", "Pramubakti", "Jln. Kilang Blok.D RT.03/RW.03", 41130742, 41130742, "BNI Sorong - 1857635100 a.n. Alda Wahdaniah", "D-III"],
-  ["8171020808820008", "Muhamat Weking, A.Md", "8171020808820008", "20.505.893.6.-951.000", "Pengemudi Operasional", "Jl. Kapitan Pattimura, Suprau, Maladum Mes, Kota Sorong", 41130742, 41130742, "BNI Sorong - 1795316943 a.n. Muhamat Weking", "D-III"]
+  ["8106036310990002", "Monica Huwae, A.Md", "8106036310990002", "20.139.103.4-951.000", "Petugas Layanan Informasi", "Kampung Wernas, Sorong Selatan", 46889061, 46889061, "BNI Sorong - 1853717189 a.n. Monica Huwae", "D-III", "2026-04-01", "2026-12-31"],
+  ["7404190107000004", "La Ode Faden Bilfar, A.Md.Pi", "7404190107000004", "62.425.102.1-951.000", "Content Creator", "Jl. Kapitan Pattimura Kel. Suprau, Kec. Maladumes, Kota Sorong", 46889061, 46889061, "BNI Manokwari - 1170375422 a.n. La Ode Faden", "D-III", "2026-04-01", "2026-12-31"],
+  ["7309066406000002", "Alda Wahdaniah, A.Md", "7309066406000002", "50.442.774.1-951.000", "Pramubakti", "Jln. Kilang Blok.D RT.03/RW.03", 41130742, 41130742, "BNI Sorong - 1857635100 a.n. Alda Wahdaniah", "D-III", "2026-04-01", "2026-12-31"],
+  ["8171020808820008", "Muhamat Weking, A.Md", "8171020808820008", "20.505.893.6.-951.000", "Pengemudi Operasional", "Jl. Kapitan Pattimura, Suprau, Maladum Mes, Kota Sorong", 41130742, 41130742, "BNI Sorong - 1795316943 a.n. Muhamat Weking", "D-III", "2026-04-01", "2026-12-31"]
 ];
 
 const DEFAULT_JAM_MASUK = "07:30";
@@ -328,6 +329,10 @@ function editPerangkat(data) {
 }
 
 /* ============== DATA MASTER PJLP (admin-only, data sensitif) ============== */
+function fmtTglFleksibel(v) {
+  if (v instanceof Date) return fmt(v, "yyyy-MM-dd");
+  return v || "";
+}
 function getDataMaster() {
   const values = getSheetMasterPjlp().getDataRange().getValues();
   values.shift();
@@ -336,7 +341,8 @@ function getDataMaster() {
       rowIndex: i + 2, nip: String(r[0]), nama: r[1], nik: String(r[2] || ""), npwp: String(r[3] || ""),
       jabatan2026: r[4] || "", alamat: r[5] || "", nilaiHps: r[6] || "", hargaNegosiasi: r[7] || "",
       rekening: r[8] || "", pendidikan: r[9] || "",
-      diperbarui: r[10] instanceof Date ? fmt(r[10], "yyyy-MM-dd HH:mm") : r[10]
+      kontrakMulai: fmtTglFleksibel(r[10]), kontrakSelesai: fmtTglFleksibel(r[11]),
+      diperbarui: r[12] instanceof Date ? fmt(r[12], "yyyy-MM-dd HH:mm") : r[12]
     };
   });
 }
@@ -354,7 +360,8 @@ function simpanDataMaster(data) {
   const now = new Date();
   const row = [
     String(data.nip), data.nama || "", data.nik || "", data.npwp || "", data.jabatan2026 || "",
-    data.alamat || "", data.nilaiHps || "", data.hargaNegosiasi || "", data.rekening || "", data.pendidikan || "", now
+    data.alamat || "", data.nilaiHps || "", data.hargaNegosiasi || "", data.rekening || "", data.pendidikan || "",
+    data.kontrakMulai || "", data.kontrakSelesai || "", now
   ];
   if (existing) sheet.getRange(existing.rowIndex, 1, 1, row.length).setValues([row]);
   else sheet.appendRow(row);

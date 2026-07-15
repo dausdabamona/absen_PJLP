@@ -61,19 +61,24 @@
         semuaPerangkat = res.perangkat || [];
         render();
         isiDropdownPegawai();
+        muatDashboard();
       })
       .catch(function (err) { $("perangkat-info").textContent = "Gagal: " + err.message; });
   }
 
-  function isiDropdownPegawai() {
-    // 1 orang bisa punya beberapa perangkat disetujui (NIP sama) - tampilkan 1 baris per NIP unik.
+  function pegawaiAktifUnik() {
+    // 1 orang bisa punya beberapa perangkat disetujui (NIP sama) - kembalikan 1 baris per NIP unik.
     var terlihat = {}, unik = [];
     semuaPerangkat.filter(function (d) { return d.status === "disetujui"; }).forEach(function (d) {
       var kunci = d.nip ? "nip:" + String(d.nip).trim() : "dev:" + d.deviceId;
       if (terlihat[kunci]) return;
       terlihat[kunci] = true; unik.push(d);
     });
-    var opsi = unik
+    return unik;
+  }
+
+  function isiDropdownPegawai() {
+    var opsi = pegawaiAktifUnik()
       .map(function (d) { return '<option value="' + esc(d.nip || "") + '" data-device="' + esc(d.deviceId) + '" data-nama="' + esc(d.nama) + '">' + esc(d.nama) + (d.nip ? " (" + esc(d.nip) + ")" : "") + "</option>"; })
       .join("");
     ["m-pilih", "dok-pilih"].forEach(function (id) {
@@ -86,6 +91,133 @@
   /* ---------- Tabel ---------- */
   function badge(status) { const m = { disetujui: "masuk", pending: "pulang", diblokir: "blok" }; return '<span class="badge ' + (m[status] || "") + '">' + status + "</span>"; }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+  /* ============== Dashboard (Beranda) ============== */
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function hariIniStr() {
+    var n = new Date();
+    var offsetJam = (typeof CONFIG !== "undefined" && CONFIG.OFFSET_JAM) ? CONFIG.OFFSET_JAM : 0;
+    var l = new Date(n.getTime() + n.getTimezoneOffset() * 60000 + offsetJam * 3600000);
+    return l.getFullYear() + "-" + pad2(l.getMonth() + 1) + "-" + pad2(l.getDate());
+  }
+  function bulanIniStr() { return hariIniStr().substring(0, 7); }
+  function jamMenitFmt(m) { m = parseInt(m, 10) || 0; if (m <= 0) return "0 mnt"; var j = Math.floor(m / 60), s = m % 60, o = []; if (j) o.push(j + " jam"); if (s) o.push(s + " mnt"); return o.join(" "); }
+  function sisaHariDari(tglYmd) {
+    if (!tglYmd) return null;
+    var p = /(\d{4})-(\d{2})-(\d{2})/.exec(tglYmd); if (!p) return null;
+    var target = new Date(+p[1], +p[2] - 1, +p[3]);
+    var hariIni = new Date(); hariIni.setHours(0, 0, 0, 0);
+    return Math.round((target - hariIni) / 86400000);
+  }
+  function badgeJenis(j) {
+    var t = String(j || "").toLowerCase(), cls = "pulang";
+    if (t.indexOf("sakit") === 0) cls = "sakit"; else if (t.indexOf("izin") === 0) cls = "izin"; else if (t.indexOf("cuti") === 0) cls = "cuti";
+    return '<span class="badge ' + cls + '">' + esc(j) + "</span>";
+  }
+  function daftarKosong(el, teks) { el.innerHTML = '<div class="dash-kosong">' + esc(teks) + "</div>"; }
+
+  function renderKpiHariIni(absRows, totalAktif) {
+    var hari = hariIniStr(), perNip = {};
+    absRows.forEach(function (r) {
+      var tgl = String(r["Tanggal"] || "").substring(0, 10);
+      if (tgl !== hari) return;
+      if (String(r["Jenis"] || "").toLowerCase() !== "masuk") return;
+      var nip = String(r["NIP/ID"] || ""); if (!nip) return;
+      var waktu = String(r["Timestamp"] || (tgl + " " + (r["Jam"] || "")));
+      if (!perNip[nip] || waktu < perNip[nip].waktu) perNip[nip] = { waktu: waktu, status: String(r["Status Waktu"] || "") };
+    });
+    var nipList = Object.keys(perNip);
+    var hadir = nipList.length;
+    var telat = nipList.filter(function (nip) { return /terlambat/i.test(perNip[nip].status); }).length;
+    $("kpi-total").textContent = totalAktif;
+    $("kpi-hadir").textContent = hadir;
+    $("kpi-telat").textContent = telat;
+    $("kpi-belum").textContent = Math.max(0, totalAktif - hadir);
+  }
+
+  function renderIzinAktif(izinRows) {
+    var hari = hariIniStr(), el = $("dash-izin-aktif");
+    var aktif = izinRows.filter(function (r) {
+      var mulai = String(r["Tanggal Mulai"] || "").substring(0, 10);
+      if (!mulai) return false;
+      var selesai = String(r["Tanggal Selesai"] || "").substring(0, 10) || mulai;
+      return hari >= mulai && hari <= selesai;
+    });
+    if (!aktif.length) { daftarKosong(el, "Tidak ada yang izin/sakit/cuti hari ini."); return; }
+    el.innerHTML = '<ul class="dash-list">' + aktif.map(function (r) {
+      return "<li><span>" + esc(r["Nama"] || "-") + "</span>" + badgeJenis(r["Jenis"] || "") + "</li>";
+    }).join("") + "</ul>";
+  }
+
+  function renderTindakan() {
+    var el = $("dash-tindakan");
+    var pending = semuaPerangkat.filter(function (d) { return d.status === "pending"; });
+    if (!pending.length) { daftarKosong(el, "Tidak ada perangkat menunggu persetujuan."); return; }
+    el.innerHTML = '<ul class="dash-list">' + pending.map(function (d) {
+      var ket = d.kemungkinanSama ? ' <span class="small muted">(🔗 kemungkinan sama dgn ' + esc(d.kemungkinanSama) + ")</span>" : "";
+      return "<li><span>" + esc(d.nama) + ket + '</span><span class="mnt-warn">Pending</span></li>';
+    }).join("") + "</ul>";
+  }
+
+  function renderKontrak() {
+    var el = $("dash-kontrak");
+    var upcoming = dataMaster.map(function (m) { return { nama: m.nama, sisa: sisaHariDari(m.kontrakSelesai), selesai: m.kontrakSelesai }; })
+      .filter(function (x) { return x.sisa != null && x.sisa <= 60; })
+      .sort(function (a, b) { return a.sisa - b.sisa; });
+    if (!upcoming.length) { daftarKosong(el, "Tidak ada kontrak yang akan berakhir dalam 60 hari."); return; }
+    el.innerHTML = '<ul class="dash-list">' + upcoming.map(function (x) {
+      var kelas = x.sisa <= 30 ? "mnt-bad" : "mnt-warn";
+      var teks = x.sisa < 0 ? "Sudah berakhir" : x.sisa + " hari lagi";
+      return "<li><span>" + esc(x.nama) + "</span><span class=\"" + kelas + "\">" + teks + " (" + esc(x.selesai) + ")</span></li>";
+    }).join("") + "</ul>";
+  }
+
+  function renderRingkasanBulan(absRows) {
+    var bulan = bulanIniStr(), hariMap = {}, el = $("dash-ringkasan");
+    absRows.forEach(function (r) {
+      var tgl = String(r["Tanggal"] || "").substring(0, 10);
+      if (tgl.indexOf(bulan) !== 0) return;
+      if (String(r["Jenis"] || "").toLowerCase() !== "masuk") return;
+      var nip = String(r["NIP/ID"] || ""); if (!nip) return;
+      var key = nip + "|" + tgl;
+      var waktu = String(r["Timestamp"] || (tgl + " " + (r["Jam"] || "")));
+      var m = /Terlambat\s+(\d+)/i.exec(String(r["Status Waktu"] || ""));
+      if (!hariMap[key] || waktu < hariMap[key].waktu) hariMap[key] = { nama: r["Nama"], nip: nip, waktu: waktu, telat: m ? parseInt(m[1], 10) : 0 };
+    });
+    var perNip = {};
+    Object.keys(hariMap).forEach(function (k) {
+      var d = hariMap[k]; if (d.telat <= 0) return;
+      if (!perNip[d.nip]) perNip[d.nip] = { nama: d.nama, kali: 0, menit: 0 };
+      perNip[d.nip].kali++; perNip[d.nip].menit += d.telat;
+    });
+    var top = Object.keys(perNip).map(function (k) { return perNip[k]; }).sort(function (a, b) { return b.menit - a.menit; }).slice(0, 5);
+    if (!top.length) { daftarKosong(el, "Tidak ada keterlambatan bulan ini. 🎉"); return; }
+    el.innerHTML = '<ul class="dash-list">' + top.map(function (x) {
+      return "<li><span>" + esc(x.nama) + "</span><span class=\"mnt-bad\">" + x.kali + "× — " + jamMenitFmt(x.menit) + "</span></li>";
+    }).join("") + "</ul>";
+  }
+
+  function muatDashboard() {
+    $("dash-tanggal").textContent = "Data per " + hariIniStr();
+    ["dash-izin-aktif", "dash-tindakan", "dash-kontrak", "dash-ringkasan"].forEach(function (id) { $(id).innerHTML = "Memuat..."; });
+    Promise.all([
+      API.post({ action: "rekapAbsensi", adminPassword: password, deviceId: "" }),
+      API.post({ action: "rekapIzin", adminPassword: password, deviceId: "" }),
+      API.post({ action: "adminDataMaster", email: email, password: password, deviceId: "" })
+    ]).then(function (r) {
+      var abs = (r[0] && r[0].data) || [];
+      var izin = (r[1] && r[1].data) || [];
+      if (r[2] && r[2].status === "success") dataMaster = r[2].master || [];
+      var totalAktif = pegawaiAktifUnik().length;
+      renderKpiHariIni(abs, totalAktif);
+      renderIzinAktif(izin);
+      renderTindakan();
+      renderKontrak();
+      renderRingkasanBulan(abs);
+    }).catch(function (err) {
+      ["dash-izin-aktif", "dash-tindakan", "dash-kontrak", "dash-ringkasan"].forEach(function (id) { daftarKosong($(id), "Gagal memuat: " + err.message); });
+    });
+  }
 
   function render() {
     const data = filterAktif === "semua" ? semuaPerangkat : semuaPerangkat.filter(function (d) { return d.status === filterAktif; });
@@ -136,13 +268,14 @@
   $("btn-refresh").addEventListener("click", muatData);
 
   /* ---------- Navigasi dashboard (Pengaturan / Data PJLP / Register / Buat Dokumen) ---------- */
-  var DASH_PANEL = { utama: $("dash-utama"), master: $("dash-master"), register: $("dash-register"), dokumen: $("dash-dokumen") };
+  var DASH_PANEL = { beranda: $("dash-beranda"), utama: $("dash-utama"), master: $("dash-master"), register: $("dash-register"), dokumen: $("dash-dokumen") };
   document.querySelectorAll(".tab[data-dash]").forEach(function (t) {
     t.addEventListener("click", function () {
       document.querySelectorAll(".tab[data-dash]").forEach(function (x) { x.classList.remove("aktif"); });
       t.classList.add("aktif");
       var target = t.getAttribute("data-dash");
       Object.keys(DASH_PANEL).forEach(function (k) { DASH_PANEL[k].classList.toggle("hidden", k !== target); });
+      if (target === "beranda") muatDashboard();
       if (target === "master" && !dataMaster.length && semuaPerangkat.length) muatDataMaster();
       if (target === "register" && !dataRegister.length) muatRegisterDokumen();
     });
@@ -213,13 +346,27 @@
       .catch(function (err) { $("master-info").textContent = "Gagal: " + err.message; });
   }
   function rupiahFmt(n) { n = String(parseInt(n, 10) || 0); return n.replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
+  function sisaHari(tglYmd) {
+    if (!tglYmd) return null;
+    var p = /(\d{4})-(\d{2})-(\d{2})/.exec(tglYmd); if (!p) return null;
+    var target = new Date(+p[1], +p[2] - 1, +p[3]);
+    var hariIni = new Date(); hariIni.setHours(0, 0, 0, 0);
+    return Math.round((target - hariIni) / 86400000);
+  }
   function renderMaster() {
     var tbody = $("master-body");
     if (!dataMaster.length) { tbody.innerHTML = ""; $("master-info").textContent = "Belum ada data master tersimpan."; return; }
     $("master-info").textContent = "Total " + dataMaster.length + " data master.";
     tbody.innerHTML = dataMaster.map(function (m) {
+      var sisa = sisaHari(m.kontrakSelesai);
+      var kontrakTxt = m.kontrakSelesai ? esc(m.kontrakSelesai) : "-";
+      if (sisa != null) {
+        if (sisa < 0) kontrakTxt = '<span class="mnt-bad">' + kontrakTxt + " (berakhir)</span>";
+        else if (sisa <= 30) kontrakTxt = '<span class="mnt-bad">' + kontrakTxt + " (" + sisa + " hari lagi)</span>";
+        else if (sisa <= 60) kontrakTxt = '<span class="mnt-warn">' + kontrakTxt + " (" + sisa + " hari lagi)</span>";
+      }
       return "<tr><td>" + esc(m.nama) + "</td><td>" + esc(m.jabatan2026 || "-") + "</td><td class=\"mono small\">" + esc(m.nik || "-") +
-        "</td><td>Rp " + rupiahFmt(m.hargaNegosiasi) + "</td><td>" + esc(m.diperbarui || "") +
+        "</td><td>Rp " + rupiahFmt(m.hargaNegosiasi) + "</td><td>" + kontrakTxt + "</td><td>" + esc(m.diperbarui || "") +
         '</td><td><button type="button" class="mini aksi-master" data-nip="' + esc(m.nip) + '">Edit</button></td></tr>';
     }).join("");
   }
@@ -233,6 +380,7 @@
     $("m-jabatan").value = m.jabatan2026 || ""; $("m-alamat").value = m.alamat || "";
     $("m-hps").value = m.nilaiHps || ""; $("m-negosiasi").value = m.hargaNegosiasi || "";
     $("m-rekening").value = m.rekening || ""; $("m-pendidikan").value = m.pendidikan || "";
+    $("m-kontrak-mulai").value = m.kontrakMulai || ""; $("m-kontrak-selesai").value = m.kontrakSelesai || "";
     window.scrollTo({ top: $("form-master").getBoundingClientRect().top + window.scrollY - 20, behavior: "smooth" });
   });
 
@@ -245,8 +393,9 @@
       $("m-jabatan").value = existing.jabatan2026 || ""; $("m-alamat").value = existing.alamat || "";
       $("m-hps").value = existing.nilaiHps || ""; $("m-negosiasi").value = existing.hargaNegosiasi || "";
       $("m-rekening").value = existing.rekening || ""; $("m-pendidikan").value = existing.pendidikan || "";
+      $("m-kontrak-mulai").value = existing.kontrakMulai || ""; $("m-kontrak-selesai").value = existing.kontrakSelesai || "";
     } else {
-      ["m-nik", "m-npwp", "m-jabatan", "m-alamat", "m-hps", "m-negosiasi", "m-rekening", "m-pendidikan"].forEach(function (id) { $(id).value = ""; });
+      ["m-nik", "m-npwp", "m-jabatan", "m-alamat", "m-hps", "m-negosiasi", "m-rekening", "m-pendidikan", "m-kontrak-mulai", "m-kontrak-selesai"].forEach(function (id) { $(id).value = ""; });
     }
   }
   $("m-pilih").addEventListener("change", isiFormMasterDariPegawai);
@@ -264,7 +413,8 @@
       nik: $("m-nik").value.trim(), npwp: $("m-npwp").value.trim(),
       jabatan2026: $("m-jabatan").value.trim(), alamat: $("m-alamat").value.trim(),
       nilaiHps: $("m-hps").value.trim(), hargaNegosiasi: $("m-negosiasi").value.trim(),
-      rekening: $("m-rekening").value.trim(), pendidikan: $("m-pendidikan").value.trim()
+      rekening: $("m-rekening").value.trim(), pendidikan: $("m-pendidikan").value.trim(),
+      kontrakMulai: $("m-kontrak-mulai").value, kontrakSelesai: $("m-kontrak-selesai").value
     }).then(function (res) {
       pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
       pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
