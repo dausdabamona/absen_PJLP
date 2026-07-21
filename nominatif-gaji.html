@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar Nominatif Gaji PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .layout { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .kertas {
+      background: #fff; color: #000; border: 1px solid var(--border); border-radius: 8px;
+      padding: 26px 30px; font-family: "Times New Roman", Georgia, serif; font-size: 12.5px; line-height: 1.5;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .kop { display: flex; align-items: center; gap: 14px; text-align: left; }
+    .kop-logo { width: 58px; height: 58px; object-fit: contain; flex-shrink: 0; }
+    .kop-text { flex: 1; text-align: center; }
+    .kop-nama { font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .3px; }
+    .kop-alamat { font-size: 11px; }
+    .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 14px; }
+    .judul { text-align: center; font-weight: 700; text-decoration: underline; text-transform: uppercase; margin: 4px 0 2px; }
+    .nomor { text-align: center; font-size: 12px; margin-bottom: 14px; }
+
+    table.gaji { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11.5px; }
+    table.gaji th, table.gaji td { border: 1px solid #000; padding: 4px 6px; text-align: left; vertical-align: middle; }
+    table.gaji th { background: #eee; text-align: center; }
+    table.gaji td.num { text-align: center; width: 26px; }
+    table.gaji td.rp { text-align: right; white-space: nowrap; }
+    table.gaji input { width: 100%; border: 1px solid #ccc; padding: 2px 4px; font: inherit; text-align: right; background: #fffef0; }
+    table.gaji tfoot td { font-weight: 700; background: #f5f5f5; }
+    .terbilang-baris { margin: 10px 0; font-size: 12px; }
+    .kosong-baris { text-align: center; font-style: italic; color: #666; padding: 14px; }
+
+    .ttd-area { display: flex; justify-content: space-between; margin-top: 26px; gap: 20px; }
+    .ttd-blok { text-align: center; width: 46%; }
+    .ttd-space { height: 60px; }
+    .ttd-nama { font-weight: 700; text-decoration: underline; }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .app, .card { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
+      .layout { display: block; }
+      .kertas { border: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 11pt; }
+      table.gaji input { border: none; background: transparent; padding: 0; }
+      .ttd-area { break-inside: avoid; }
+      @page { size: A4 landscape; margin: 1.5cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">💰</span>
+        <div>
+          <h1>Daftar Nominatif Gaji</h1>
+          <p class="subtitle">Semua PJLP — cetak / simpan PDF</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="admin.html">&larr; Panel Admin</a>
+    </header>
+
+    <main class="card">
+      <div id="status-akses" class="status err hidden"></div>
+      <div id="konten" class="layout hidden">
+        <!-- KONTROL -->
+        <div class="no-print">
+          <h2 class="seksi-judul">Data Daftar Nominatif</h2>
+          <div id="ng-status" class="status muted">Memuat data...</div>
+          <form id="form-ng" autocomplete="off">
+            <label>Bulan/Periode Gaji<input type="month" id="n-bulan"></label>
+            <label>Nomor <span class="opsional">(opsional)</span><input type="text" id="n-nomor" placeholder="mis. 01/GAJI/PJLP/VII/2026"></label>
+            <label>Nama Instansi (Kop)<input type="text" id="n-instansi" value="POLITEKNIK KELAUTAN DAN PERIKANAN SORONG"></label>
+            <label>Alamat Instansi <span class="opsional">(opsional)</span><input type="text" id="n-alamat"></label>
+
+            <hr class="garis">
+            <div class="grid2">
+              <label>Kota<input type="text" id="n-kota" value="Sorong"></label>
+              <label>Tanggal Dokumen<input type="date" id="n-tgl"></label>
+            </div>
+            <label>Dibuat Oleh (Bendahara/Kepegawaian)<input type="text" id="n-pembuat" placeholder="Nama pembuat daftar"></label>
+
+            <hr class="garis">
+            <div class="seksi-info" style="margin-bottom:6px;">Mengetahui (PPK)</div>
+            <label>Nama PPK<input type="text" id="n-ppk-nama" value="Firdaus Dabamona, A.Md., S.T."></label>
+            <label>NIP PPK<input type="text" id="n-ppk-nip" value="198201032007011002"></label>
+
+            <button type="button" id="btn-cetak" class="submit">🖨️ Cetak / Simpan PDF</button>
+          </form>
+        </div>
+
+        <!-- PRATINJAU -->
+        <div>
+          <div class="seksi-info no-print">Pratinjau — kolom Gaji Pokok &amp; Potongan bisa dikoreksi manual sebelum cetak:</div>
+          <div id="dokumen" class="kertas">
+            <div class="kop">
+              <img class="kop-logo" src="assets/logo-kkp.png" alt="Logo KKP">
+              <div class="kop-text">
+                <div class="kop-nama" id="p-instansi"></div>
+                <div class="kop-alamat" id="p-alamat"></div>
+              </div>
+            </div>
+            <hr class="kop-garis">
+            <div class="judul">Daftar Nominatif Gaji/Honorarium PJLP</div>
+            <div class="nomor" id="p-sub"></div>
+
+            <table class="gaji">
+              <thead>
+                <tr>
+                  <th style="width:26px;">No</th>
+                  <th>Nama</th>
+                  <th>NIP</th>
+                  <th>Jabatan</th>
+                  <th style="width:110px;">Gaji Pokok (Rp)</th>
+                  <th style="width:100px;">Potongan (Rp)</th>
+                  <th style="width:110px;">Gaji Bersih (Rp)</th>
+                  <th>No. Rekening</th>
+                  <th style="width:90px;">Tanda Tangan</th>
+                </tr>
+              </thead>
+              <tbody id="p-body"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="6" style="text-align:right;">TOTAL</td>
+                  <td class="rp" id="p-total">-</td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+            <div class="terbilang-baris">Terbilang: <b id="p-terbilang"></b></div>
+
+            <div class="ttd-area">
+              <div class="ttd-blok">
+                <div>Mengetahui,</div>
+                <div>Pejabat Pembuat Komitmen</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-ppk-nama"></div>
+                <div id="p-ppk-nip"></div>
+              </div>
+              <div class="ttd-blok">
+                <div id="p-kotatgl"></div>
+                <div>Dibuat oleh,</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-pembuat-nama"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/nominatif-gaji.js"></script>
+</body>
+</html>

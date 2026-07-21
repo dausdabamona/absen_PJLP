@@ -45,6 +45,7 @@
         <button class="tab" data-dash="dokumen">📄 <span>Buat Dokumen</span></button>
       </nav>
       <div class="admin-sidebar-footer">
+        <span id="badge-role" class="small muted" style="padding:6px 8px;">👑 PPK</span>
         <a class="link-rekap" href="rekap.html">📊 Rekap</a>
         <a class="link-rekap" href="index.html?absen=1">🕓 Absen</a>
         <a class="link-rekap" href="#" id="link-keluar">🚪 Keluar</a>
@@ -136,10 +137,18 @@
           </div>
 
           <hr class="garis">
-          <h3 class="seksi-judul">🔐 Akun Admin</h3>
-          <label>Email Admin<input type="email" id="s-email" placeholder="dausdaba@polikpsorong.ac.id"></label>
-          <label>Ganti Password Admin <span class="opsional">(kosongkan jika tidak diubah)</span>
+          <h3 class="seksi-judul">🔐 Akun PPK (Admin Utama)</h3>
+          <label>Email PPK<input type="email" id="s-email" placeholder="dausdaba@polikpsorong.ac.id"></label>
+          <label>Ganti Password PPK <span class="opsional">(kosongkan jika tidak diubah)</span>
             <input type="password" id="s-password" placeholder="Password baru (min. 6 karakter)">
+          </label>
+
+          <hr class="garis">
+          <h3 class="seksi-judul">🗂️ Akun Kepegawaian</h3>
+          <p class="seksi-info">Akses terbatas: Dashboard/Rekap, Data PJLP, Buat Dokumen. Tidak bisa ubah Pengaturan ini atau menyetujui/memblokir perangkat.</p>
+          <label>Email Kepegawaian<input type="email" id="s-kepegawaian-email" placeholder="kepegawaian@polikpsorong.ac.id"></label>
+          <label>Password Kepegawaian <span class="opsional">(kosongkan jika tidak diubah)</span>
+            <input type="password" id="s-kepegawaian-password" placeholder="Password baru (min. 6 karakter)">
           </label>
 
           <button type="submit" id="btn-simpan" class="submit">Simpan Pengaturan</button>
@@ -234,6 +243,9 @@
           <button type="button" id="btn-dok-ba" class="mini" disabled>📑 Buat BAST / BAPP / BAP</button>
           <button type="button" id="btn-dok-kuitansi" class="mini" disabled>🧾 Buat Kuitansi</button>
         </div>
+        <hr class="garis">
+        <p class="seksi-info">Dokumen berikut mencakup SEMUA pegawai sekaligus — tidak perlu pilih 1 pegawai dulu.</p>
+        <button type="button" id="btn-dok-nominatif" class="mini primary">💰 Buat Daftar Nominatif Gaji</button>
       </div>
     </main>
   </div>

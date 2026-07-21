@@ -8,6 +8,7 @@
   const $ = function (id) { return document.getElementById(id); };
   let password = sessionStorage.getItem("pjlp_admin_pw") || "";
   let email = sessionStorage.getItem("pjlp_admin_email") || "";
+  let role = sessionStorage.getItem("pjlp_role") || "ppk";
   let semuaPerangkat = [];
   let filterAktif = "semua";
   let dataMaster = [];
@@ -39,7 +40,8 @@
     $("seksi-login").classList.add("hidden"); $("seksi-dashboard").classList.remove("hidden"); muatData();
   }
   function keluar() {
-    sessionStorage.removeItem("pjlp_admin_pw"); sessionStorage.removeItem("pjlp_admin_email"); password = ""; email = "";
+    sessionStorage.removeItem("pjlp_admin_pw"); sessionStorage.removeItem("pjlp_admin_email"); sessionStorage.removeItem("pjlp_role");
+    password = ""; email = ""; role = "ppk";
     $("seksi-dashboard").classList.add("hidden"); $("seksi-login").classList.remove("hidden");
     $("login-pesan").textContent = "Sesi berakhir, masuk lagi.";
   }
@@ -49,6 +51,9 @@
     API.post({ action: "adminData", email: email, password: password, deviceId: "" })
       .then(function (res) {
         if (res.status !== "success") { if (/password/i.test(res.message || "")) keluar(); $("perangkat-info").textContent = res.message || "Gagal."; return; }
+        role = res.role || "ppk";
+        sessionStorage.setItem("pjlp_role", role);
+        terapkanRoleUI();
         const s = res.pengaturan || {};
         $("s-instansi").value = s.namaInstansi || "";
         $("s-lat").value = s.lat || ""; $("s-lng").value = s.lng || ""; $("s-radius").value = s.radius || "";
@@ -58,6 +63,7 @@
         $("s-buffer-masuk").value = (s.bufferMasuk !== undefined && s.bufferMasuk !== "") ? s.bufferMasuk : "";
         $("s-buffer-pulang").value = (s.bufferPulang !== undefined && s.bufferPulang !== "") ? s.bufferPulang : "";
         $("s-email").value = s.adminEmail || "";
+        $("s-kepegawaian-email").value = s.kepegawaianEmail || "";
         semuaPerangkat = res.perangkat || [];
         render();
         isiDropdownPegawai();
@@ -66,10 +72,22 @@
       .catch(function (err) { $("perangkat-info").textContent = "Gagal: " + err.message; });
   }
 
+  function terapkanRoleUI() {
+    $("badge-role").textContent = role === "ppk" ? "👑 PPK" : "🗂️ Kepegawaian";
+    // Tab "Pengaturan & Perangkat" khusus PPK (lokasi/jam kerja/persetujuan perangkat/password).
+    var tabUtama = document.querySelector('.tab[data-dash="utama"]');
+    if (tabUtama) tabUtama.classList.toggle("hidden", role !== "ppk");
+    if (role !== "ppk" && tabUtama && tabUtama.classList.contains("aktif")) {
+      // Kalau sedang di tab yang disembunyikan, pindah ke Dashboard.
+      document.querySelector('.tab[data-dash="beranda"]').click();
+    }
+  }
+
   function pegawaiAktifUnik() {
     // 1 orang bisa punya beberapa perangkat disetujui (NIP sama) - kembalikan 1 baris per NIP unik.
+    // Perangkat ber-role PPK (mis. Firdaus) dikecualikan - bukan PJLP.
     var terlihat = {}, unik = [];
-    semuaPerangkat.filter(function (d) { return d.status === "disetujui"; }).forEach(function (d) {
+    semuaPerangkat.filter(function (d) { return d.status === "disetujui" && d.role !== "PPK"; }).forEach(function (d) {
       var kunci = d.nip ? "nip:" + String(d.nip).trim() : "dev:" + d.deviceId;
       if (terlihat[kunci]) return;
       terlihat[kunci] = true; unik.push(d);
@@ -229,8 +247,10 @@
       if (d.status !== "disetujui") aksi += '<button class="mini primary aksi" data-id="' + esc(d.deviceId) + '" data-act="disetujui">Setujui</button> ';
       if (d.status !== "diblokir") aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="diblokir">Blokir</button> ';
       aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="edit">Edit</button> ';
+      aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="' + (d.role === "PPK" ? "lepasppk" : "jadippk") + '">' + (d.role === "PPK" ? "Jadikan PJLP" : "Jadikan PPK") + '</button> ';
       aksi += '<button class="mini danger aksi" data-id="' + esc(d.deviceId) + '" data-act="hapus">Hapus</button>';
-      var namaSel = "<td>" + esc(d.nama) + (d.kemungkinanSama ? '<br><span class="small muted">🔗 Kemungkinan sama dengan ' + esc(d.kemungkinanSama) + "</span>" : "") + "</td>";
+      var labelPPK = d.role === "PPK" ? ' <span class="badge menunggu small">PPK</span>' : "";
+      var namaSel = "<td>" + esc(d.nama) + labelPPK + (d.kemungkinanSama ? '<br><span class="small muted">🔗 Kemungkinan sama dengan ' + esc(d.kemungkinanSama) + "</span>" : "") + "</td>";
       return "<tr>" + namaSel + "<td>" + esc(d.nip || "-") + "</td><td>" + badge(d.status) +
         "</td><td>" + esc(d.didaftarkan || "") + "</td><td class=\"mono small\">" + esc(d.deviceId) + "</td><td class=\"aksi-sel\">" + aksi + "</td></tr>";
     }).join("");
@@ -240,6 +260,11 @@
     const btn = ev.target.closest(".aksi"); if (!btn) return;
     const id = btn.getAttribute("data-id"), act = btn.getAttribute("data-act");
     if (act === "hapus") { if (!confirm("Hapus perangkat ini? Tidak bisa dibatalkan.")) return; kirim({ action: "hapusPerangkat", deviceId: id }); }
+    else if (act === "jadippk") {
+      if (!confirm("Tandai perangkat ini sebagai PPK? Akan dikecualikan dari Data Master PJLP, dropdown pegawai, dan Daftar Nominatif Gaji.")) return;
+      kirim({ action: "setRolePerangkat", deviceId: id, roleBaru: "PPK" });
+    }
+    else if (act === "lepasppk") { kirim({ action: "setRolePerangkat", deviceId: id, roleBaru: "" }); }
     else if (act === "edit") {
       const d = semuaPerangkat.filter(function (x) { return x.deviceId === id; })[0];
       if (!d) return;
@@ -312,13 +337,16 @@
       jamMasuk: $("s-jam-masuk").value.trim(), jamPulang: $("s-jam-pulang").value.trim(),
       bufferMasuk: $("s-buffer-masuk").value.trim(), bufferPulang: $("s-buffer-pulang").value.trim(),
       passwordBaru: pwBaru,
-      emailAdminBaru: (emailBaru && emailBaru.toLowerCase() !== email.toLowerCase()) ? emailBaru : ""
+      emailAdminBaru: (emailBaru && emailBaru.toLowerCase() !== email.toLowerCase()) ? emailBaru : "",
+      kepegawaianEmailBaru: $("s-kepegawaian-email").value.trim(),
+      kepegawaianPasswordBaru: $("s-kepegawaian-password").value
     }).then(function (res) {
       pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
       pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
       pesan.classList.remove("hidden");
       if (res.status === "success" && pwBaru) { password = pwBaru; sessionStorage.setItem("pjlp_admin_pw", pwBaru); $("s-password").value = ""; }
       if (res.status === "success" && emailBaru) { email = emailBaru; sessionStorage.setItem("pjlp_admin_email", emailBaru); }
+      if (res.status === "success") $("s-kepegawaian-password").value = "";
     }).catch(function (err) {
       pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Pengaturan"; });
@@ -473,6 +501,8 @@
   $("btn-dok-rekap").addEventListener("click", function () { window.open("rekap.html", "_blank"); });
   $("btn-dok-ba").addEventListener("click", function () { bukaDokumen("berita-acara.html"); });
   $("btn-dok-kuitansi").addEventListener("click", function () { bukaDokumen("kuitansi.html"); });
+  // Nominatif Gaji mencakup SEMUA pegawai sekaligus - tidak perlu pilih 1 pegawai dulu.
+  $("btn-dok-nominatif").addEventListener("click", function () { window.open("nominatif-gaji.html", "_blank"); });
 
   /* ---------- Auto-login ---------- */
   if (password && email && !API.belumDikonfigurasi()) masukDashboard();
