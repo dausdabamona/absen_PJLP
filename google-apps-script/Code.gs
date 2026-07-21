@@ -39,7 +39,7 @@ const HEADER_IZIN = [
   "Tanggal Selesai", "Alasan", "Foto Surat"
 ];
 const HEADER_PERANGKAT = [
-  "Device ID", "Nama", "NIP/ID", "Status", "Didaftarkan", "Diperbarui"
+  "Device ID", "Nama", "NIP/ID", "Status", "Didaftarkan", "Diperbarui", "Role"
 ];
 const HEADER_MASTER_PJLP = [
   "NIP/ID", "Nama", "NIK", "NPWP", "Jabatan 2026", "Alamat",
@@ -286,13 +286,15 @@ function rekapData(data, namaSheet, header) {
 
 /* ====================== ADMIN =========================== */
 function adminLogin(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
-  return jsonOutput({ status: "success", message: "Login berhasil." });
+  if (cekAdmin(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "ppk" });
+  if (cekKepegawaian(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "kepegawaian" });
+  return jsonOutput({ status: "error", message: "Email atau password salah." });
 }
 
 function adminData(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
-  return jsonOutput({ status: "success", perangkat: listPerangkat(), pengaturan: getPengaturanPublic() });
+  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  const role = cekAdmin(data) ? "ppk" : "kepegawaian";
+  return jsonOutput({ status: "success", role: role, perangkat: listPerangkat(), pengaturan: getPengaturanPublic() });
 }
 
 function setStatusPerangkat(data) {
@@ -328,6 +330,17 @@ function editPerangkat(data) {
   return jsonOutput({ status: "success", message: "Data perangkat diperbarui." });
 }
 
+function setRolePerangkat(data) {
+  // PPK-only: tandai/lepas tanda "PPK" pada satu perangkat. Perangkat bertanda PPK
+  // dikecualikan dari Data Master PJLP, dropdown pegawai, dan Daftar Nominatif Gaji.
+  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  const dev = cariPerangkat(data.deviceId);
+  if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
+  const roleBaru = data.roleBaru === "PPK" ? "PPK" : "";
+  getSheetPerangkat().getRange(dev.rowIndex, 7).setValue(roleBaru);
+  return jsonOutput({ status: "success", message: roleBaru ? "Ditandai sebagai PPK." : "Tanda PPK dilepas." });
+}
+
 /* ============== DATA MASTER PJLP (admin-only, data sensitif) ============== */
 function fmtTglFleksibel(v) {
   if (v instanceof Date) return fmt(v, "yyyy-MM-dd");
@@ -347,13 +360,13 @@ function getDataMaster() {
   });
 }
 function adminDataMaster(data) {
-  // Admin-only: mengembalikan data sensitif (NIK/NPWP/rekening). Endpoint mandiri PJLP
-  // (cekPerangkat) TIDAK memakai fungsi ini dan tidak pernah mengirim data ini ke device biasa.
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  // PPK atau Kepegawaian: mengembalikan data sensitif (NIK/NPWP/rekening). Endpoint mandiri
+  // PJLP (cekPerangkat) TIDAK memakai fungsi ini dan tidak pernah mengirim data ini ke device biasa.
+  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   return jsonOutput({ status: "success", master: getDataMaster() });
 }
 function simpanDataMaster(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   if (!data.nip) return jsonOutput({ status: "error", message: "NIP/ID wajib diisi." });
   const sheet = getSheetMasterPjlp();
   const existing = getDataMaster().filter(function (m) { return m.nip === String(data.nip); })[0];
@@ -370,7 +383,7 @@ function simpanDataMaster(data) {
 
 /* ============== REGISTER DOKUMEN PENGADAAN (admin-only, referensi) ============== */
 function adminRegisterDokumen(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   const values = getSheetRegisterDokumen().getDataRange().getValues();
   const headers = values.shift();
   const out = values.map(function (row) {
@@ -406,6 +419,14 @@ function simpanPengaturan(data) {
     if (String(data.emailAdminBaru).indexOf("@") === -1) return jsonOutput({ status: "error", message: "Email admin tidak valid." });
     p.setProperty("ADMIN_EMAIL", String(data.emailAdminBaru).trim());
   }
+  if (data.kepegawaianEmailBaru !== undefined && data.kepegawaianEmailBaru !== "") {
+    if (String(data.kepegawaianEmailBaru).indexOf("@") === -1) return jsonOutput({ status: "error", message: "Email Kepegawaian tidak valid." });
+    p.setProperty("KEPEGAWAIAN_EMAIL", String(data.kepegawaianEmailBaru).trim());
+  }
+  if (data.kepegawaianPasswordBaru) {
+    if (String(data.kepegawaianPasswordBaru).length < 6) return jsonOutput({ status: "error", message: "Password Kepegawaian minimal 6 karakter." });
+    p.setProperty("KEPEGAWAIAN_PASSWORD", String(data.kepegawaianPasswordBaru));
+  }
   return jsonOutput({ status: "success", message: "Pengaturan disimpan." });
 }
 
@@ -421,10 +442,27 @@ function getAdminEmail() {
   return em;
 }
 function cekAdmin(data) {
-  // Admin tunggal: email HARUS cocok DAN password HARUS cocok.
+  // PPK (kontrol penuh): email HARUS cocok DAN password HARUS cocok.
   const emailOk = data.email !== undefined && String(data.email).trim().toLowerCase() === getAdminEmail().toLowerCase();
   const passOk = data.password !== undefined && String(data.password) === getAdminPassword();
   return emailOk && passOk;
+}
+function getKepegawaianEmail() { return props().getProperty("KEPEGAWAIAN_EMAIL") || ""; }
+function getKepegawaianPassword() { return props().getProperty("KEPEGAWAIAN_PASSWORD") || ""; }
+function cekKepegawaian(data) {
+  // Role Kepegawaian: akun terpisah, akses terbatas (lihat cekAdminAtauKepegawaian).
+  // Belum aktif sampai PPK mengatur email+password Kepegawaian lewat Pengaturan.
+  const em = getKepegawaianEmail(), pw = getKepegawaianPassword();
+  if (!em || !pw) return false;
+  const emailOk = data.email !== undefined && String(data.email).trim().toLowerCase() === em.toLowerCase();
+  const passOk = data.password !== undefined && String(data.password) === pw;
+  return emailOk && passOk;
+}
+function cekAdminAtauKepegawaian(data) { return cekAdmin(data) || cekKepegawaian(data); }
+function isPasswordAdminAtauKepegawaian(pw) {
+  if (!pw) return false;
+  const kepPw = getKepegawaianPassword();
+  return String(pw) === getAdminPassword() || (!!kepPw && String(pw) === kepPw);
 }
 
 /* ====================== JAM KERJA ======================= */
@@ -470,7 +508,7 @@ function getPengaturanPublic() {
     lat: isNaN(s.lat) ? "" : s.lat, lng: isNaN(s.lng) ? "" : s.lng, radius: s.radius || "",
     namaInstansi: s.namaInstansi, jamMasuk: s.jamMasuk, jamPulang: s.jamPulang,
     bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi,
-    bebasJumat: s.bebasJumat, adminEmail: getAdminEmail()
+    bebasJumat: s.bebasJumat, adminEmail: getAdminEmail(), kepegawaianEmail: getKepegawaianEmail()
   };
 }
 
@@ -478,7 +516,7 @@ function getDataPerangkat() {
   const values = getSheetPerangkat().getDataRange().getValues();
   values.shift();
   return values.map(function (r, i) {
-    return { rowIndex: i + 2, deviceId: String(r[0]), nama: r[1], nip: r[2], status: r[3], didaftarkan: r[4] };
+    return { rowIndex: i + 2, deviceId: String(r[0]), nama: r[1], nip: r[2], status: r[3], didaftarkan: r[4], role: r[6] || "" };
   });
 }
 function cariPerangkat(deviceId) {
@@ -488,11 +526,11 @@ function cariPerangkat(deviceId) {
 function listPerangkat() {
   const semua = getDataPerangkat();
   return semua.map(function (d) {
-    const out = { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
-    if (d.status === "pending" && d.nip) {
+    const out = { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, role: d.role || "", didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
+    if (d.status === "pending" && d.nip && d.role !== "PPK") {
       const nipTrim = String(d.nip).trim();
       const cocok = semua.filter(function (x) {
-        return x.status === "disetujui" && x.nip && String(x.nip).trim() === nipTrim && x.deviceId !== d.deviceId;
+        return x.status === "disetujui" && x.role !== "PPK" && x.nip && String(x.nip).trim() === nipTrim && x.deviceId !== d.deviceId;
       })[0];
       if (cocok) out.kemungkinanSama = cocok.nama;
     }
