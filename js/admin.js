@@ -506,6 +506,7 @@
   $("btn-dok-kuitansi").addEventListener("click", function () { bukaDokumen("kuitansi.html"); });
   // Nominatif Gaji mencakup SEMUA pegawai sekaligus - tidak perlu pilih 1 pegawai dulu.
   $("btn-dok-nominatif").addEventListener("click", function () { window.open("nominatif-gaji.html", "_blank"); });
+  $("btn-dok-bpjs").addEventListener("click", function () { window.open("bpjs.html", "_blank"); });
 
   /* ---------- Auto-login ---------- */
   if (password && email && !API.belumDikonfigurasi()) masukDashboard();

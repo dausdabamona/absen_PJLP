@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar Rincian Iuran BPJS PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .layout { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    .kertas {
+      background: #fff; color: #000; border: 1px solid var(--border); border-radius: 8px;
+      padding: 26px 30px; font-family: "Times New Roman", Georgia, serif; font-size: 12.5px; line-height: 1.5;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+    .kop { display: flex; align-items: center; gap: 14px; text-align: left; }
+    .kop-logo { width: 58px; height: 58px; object-fit: contain; flex-shrink: 0; }
+    .kop-text { flex: 1; text-align: center; }
+    .kop-nama { font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .3px; }
+    .kop-alamat { font-size: 11px; }
+    .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 14px; }
+    .judul { text-align: center; font-weight: 700; text-decoration: underline; text-transform: uppercase; margin: 4px 0 2px; }
+    .nomor { text-align: center; font-size: 12px; margin-bottom: 14px; }
+
+    table.bpjs { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 10.5px; }
+    table.bpjs th, table.bpjs td { border: 1px solid #000; padding: 3px 5px; text-align: left; vertical-align: middle; }
+    table.bpjs th { background: #eee; text-align: center; }
+    table.bpjs td.num { text-align: center; width: 24px; }
+    table.bpjs td.rp { text-align: right; white-space: nowrap; }
+    table.bpjs tfoot td { font-weight: 700; background: #f5f5f5; }
+    .terbilang-baris { margin: 10px 0; font-size: 12px; }
+    .kosong-baris { text-align: center; font-style: italic; color: #666; padding: 14px; }
+    .catatan-kaki { font-size: 10.5px; margin-top: 6px; color: #333; }
+
+    .ttd-area { display: flex; justify-content: space-between; margin-top: 26px; gap: 20px; }
+    .ttd-blok { text-align: center; width: 46%; }
+    .ttd-space { height: 60px; }
+    .ttd-nama { font-weight: 700; text-decoration: underline; }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .app, .card { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
+      .layout { display: block; }
+      .kertas { border: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 10.5pt; }
+      .ttd-area { break-inside: avoid; }
+      @page { size: A4 landscape; margin: 1.5cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">🏥</span>
+        <div>
+          <h1>Daftar Rincian Iuran BPJS</h1>
+          <p class="subtitle">Ditanggung pemberi kerja — semua PJLP, cetak / simpan PDF</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="admin.html">&larr; Panel Admin</a>
+    </header>
+
+    <main class="card">
+      <div id="status-akses" class="status err hidden"></div>
+      <div id="konten" class="layout hidden">
+        <!-- KONTROL -->
+        <div class="no-print">
+          <h2 class="seksi-judul">Data Rincian BPJS</h2>
+          <div id="bp-status" class="status muted">Memuat data...</div>
+          <form id="form-bp" autocomplete="off">
+            <label>Bulan/Periode<input type="month" id="b-bulan"></label>
+            <label>Nomor <span class="opsional">(opsional)</span><input type="text" id="b-nomor" placeholder="mis. 01/BPJS/PJLP/VII/2026"></label>
+            <label>Nama Instansi (Kop)<input type="text" id="b-instansi" value="POLITEKNIK KELAUTAN DAN PERIKANAN SORONG"></label>
+            <label>Alamat Instansi <span class="opsional">(opsional)</span><input type="text" id="b-alamat"></label>
+
+            <hr class="garis">
+            <div class="grid2">
+              <label>Kota<input type="text" id="b-kota" value="Sorong"></label>
+              <label>Tanggal Dokumen<input type="date" id="b-tgl"></label>
+            </div>
+            <label>Dibuat Oleh (Bendahara/Kepegawaian)<input type="text" id="b-pembuat" placeholder="Nama pembuat daftar"></label>
+
+            <hr class="garis">
+            <div class="seksi-info" style="margin-bottom:6px;">Mengetahui (PPK)</div>
+            <label>Nama PPK<input type="text" id="b-ppk-nama" value="Firdaus Dabamona, A.Md., S.T."></label>
+            <label>NIP PPK<input type="text" id="b-ppk-nip" value="198201032007011002"></label>
+
+            <button type="button" id="btn-cetak" class="submit">🖨️ Cetak / Simpan PDF</button>
+          </form>
+        </div>
+
+        <!-- PRATINJAU -->
+        <div>
+          <div class="seksi-info no-print">Pratinjau — dihitung otomatis dari Honorarium Bulanan × tarif BPJS resmi:</div>
+          <div id="dokumen" class="kertas">
+            <div class="kop">
+              <img class="kop-logo" src="assets/logo-kkp.png" alt="Logo KKP">
+              <div class="kop-text">
+                <div class="kop-nama" id="p-instansi"></div>
+                <div class="kop-alamat" id="p-alamat"></div>
+              </div>
+            </div>
+            <hr class="kop-garis">
+            <div class="judul">Daftar Rincian Iuran BPJS PJLP</div>
+            <div class="nomor" id="p-sub"></div>
+
+            <table class="bpjs">
+              <thead>
+                <tr>
+                  <th style="width:22px;">No</th>
+                  <th>Nama</th>
+                  <th>NIP</th>
+                  <th>Jabatan</th>
+                  <th style="width:95px;">Honorarium (Rp)</th>
+                  <th style="width:75px;">Kesehatan<br>(4%)</th>
+                  <th style="width:75px;">JHT<br>(3,7%)</th>
+                  <th style="width:70px;">JP<br>(2%)</th>
+                  <th style="width:65px;">JKK<br>(0,24%)</th>
+                  <th style="width:65px;">JKM<br>(0,30%)</th>
+                  <th style="width:95px;">Total Iuran/Bulan</th>
+                </tr>
+              </thead>
+              <tbody id="p-body"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="4" style="text-align:right;">TOTAL</td>
+                  <td class="rp" id="p-tot-honor">-</td>
+                  <td class="rp" id="p-tot-kes">-</td>
+                  <td class="rp" id="p-tot-jht">-</td>
+                  <td class="rp" id="p-tot-jp">-</td>
+                  <td class="rp" id="p-tot-jkk">-</td>
+                  <td class="rp" id="p-tot-jkm">-</td>
+                  <td class="rp" id="p-total">-</td>
+                </tr>
+              </tfoot>
+            </table>
+            <div class="terbilang-baris">Total iuran BPJS ditanggung institusi: <b id="p-terbilang"></b></div>
+            <div class="catatan-kaki">Tarif sesuai SPK PJLP: BPJS Kesehatan 4%, BPJS Ketenagakerjaan (JHT 3,7% + JP 2% + JKK 0,24% + JKM 0,30%) dari Honorarium Bulanan. Iuran ini ditanggung pemberi kerja, bukan potongan gaji PJLP.</div>
+
+            <div class="ttd-area">
+              <div class="ttd-blok">
+                <div>Mengetahui,</div>
+                <div>Pejabat Pembuat Komitmen</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-ppk-nama"></div>
+                <div id="p-ppk-nip"></div>
+              </div>
+              <div class="ttd-blok">
+                <div id="p-kotatgl"></div>
+                <div>Dibuat oleh,</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-pembuat-nama"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/bpjs.js"></script>
+</body>
+</html>
