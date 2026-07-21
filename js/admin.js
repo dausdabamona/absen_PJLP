@@ -394,7 +394,7 @@
         else if (sisa <= 60) kontrakTxt = '<span class="mnt-warn">' + kontrakTxt + " (" + sisa + " hari lagi)</span>";
       }
       return "<tr><td>" + esc(m.nama) + "</td><td>" + esc(m.jabatan2026 || "-") + "</td><td class=\"mono small\">" + esc(m.nik || "-") +
-        "</td><td>Rp " + rupiahFmt(m.hargaNegosiasi) + "</td><td>" + kontrakTxt + "</td><td>" + esc(m.diperbarui || "") +
+        "</td><td>Rp " + rupiahFmt(m.honorariumBulanan) + "</td><td>" + kontrakTxt + "</td><td>" + esc(m.diperbarui || "") +
         '</td><td><button type="button" class="mini aksi-master" data-nip="' + esc(m.nip) + '">Edit</button></td></tr>';
     }).join("");
   }
@@ -407,6 +407,7 @@
     $("m-nik").value = m.nik || ""; $("m-npwp").value = m.npwp || "";
     $("m-jabatan").value = m.jabatan2026 || ""; $("m-alamat").value = m.alamat || "";
     $("m-hps").value = m.nilaiHps || ""; $("m-negosiasi").value = m.hargaNegosiasi || "";
+    $("m-honorarium").value = m.honorariumBulanan || "";
     $("m-rekening").value = m.rekening || ""; $("m-pendidikan").value = m.pendidikan || "";
     $("m-kontrak-mulai").value = m.kontrakMulai || ""; $("m-kontrak-selesai").value = m.kontrakSelesai || "";
     window.scrollTo({ top: $("form-master").getBoundingClientRect().top + window.scrollY - 20, behavior: "smooth" });
@@ -420,10 +421,11 @@
       $("m-nik").value = existing.nik || ""; $("m-npwp").value = existing.npwp || "";
       $("m-jabatan").value = existing.jabatan2026 || ""; $("m-alamat").value = existing.alamat || "";
       $("m-hps").value = existing.nilaiHps || ""; $("m-negosiasi").value = existing.hargaNegosiasi || "";
+      $("m-honorarium").value = existing.honorariumBulanan || "";
       $("m-rekening").value = existing.rekening || ""; $("m-pendidikan").value = existing.pendidikan || "";
       $("m-kontrak-mulai").value = existing.kontrakMulai || ""; $("m-kontrak-selesai").value = existing.kontrakSelesai || "";
     } else {
-      ["m-nik", "m-npwp", "m-jabatan", "m-alamat", "m-hps", "m-negosiasi", "m-rekening", "m-pendidikan", "m-kontrak-mulai", "m-kontrak-selesai"].forEach(function (id) { $(id).value = ""; });
+      ["m-nik", "m-npwp", "m-jabatan", "m-alamat", "m-hps", "m-negosiasi", "m-honorarium", "m-rekening", "m-pendidikan", "m-kontrak-mulai", "m-kontrak-selesai"].forEach(function (id) { $(id).value = ""; });
     }
   }
   $("m-pilih").addEventListener("change", isiFormMasterDariPegawai);
@@ -441,6 +443,7 @@
       nik: $("m-nik").value.trim(), npwp: $("m-npwp").value.trim(),
       jabatan2026: $("m-jabatan").value.trim(), alamat: $("m-alamat").value.trim(),
       nilaiHps: $("m-hps").value.trim(), hargaNegosiasi: $("m-negosiasi").value.trim(),
+      honorariumBulanan: $("m-honorarium").value.trim(),
       rekening: $("m-rekening").value.trim(), pendidikan: $("m-pendidikan").value.trim(),
       kontrakMulai: $("m-kontrak-mulai").value, kontrakSelesai: $("m-kontrak-selesai").value
     }).then(function (res) {

@@ -1,7 +1,7 @@
 /* ============================================================
    Daftar Nominatif Gaji PJLP — SEMUA pegawai sekaligus.
-   Wajib mode admin (PPK/Kepegawaian). Gaji pokok otomatis dari
-   Harga Negosiasi / jumlah bulan kontrak, bisa dikoreksi manual.
+   Wajib mode admin (PPK/Kepegawaian). Gaji pokok diambil dari
+   Honorarium Bulanan (Data Master PJLP), bisa dikoreksi manual.
    ============================================================ */
 
 (function () {
@@ -11,7 +11,6 @@
 
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-  function parseTgl(s) { var p = /(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return p ? new Date(+p[1], +p[2] - 1, +p[3]) : null; }
   function fmtTanggal(s) { var p = /(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return p ? (+p[3] + " " + BULAN[+p[2] - 1] + " " + p[1]) : (s || "-"); }
   function lokal() { var n = new Date(); return new Date(n.getTime() + n.getTimezoneOffset() * 60000 + (CONFIG.OFFSET_JAM || 0) * 3600000); }
   function bulanIni() { var d = lokal(); return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
@@ -43,13 +42,6 @@
     if (ribu > 0) out += (ribu === 1 ? "seribu" : tiga(ribu) + " ribu") + " ";
     if (n > 0) out += tiga(n);
     return out.trim().replace(/\s+/g, " ");
-  }
-
-  function bulanAntara(mulai, selesai) {
-    var a = parseTgl(mulai), b = parseTgl(selesai);
-    if (!a || !b) return 9; // default periode kontrak PJLP (April-Desember)
-    var bln = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) + 1;
-    return bln > 0 ? bln : 9;
   }
 
   var baris = []; // { nama, nip, jabatan, rekening, gajiPokok, potongan }
@@ -144,8 +136,10 @@
       perangkat.forEach(function (d) { if (d.role === "PPK" && d.nip) nipPPK[String(d.nip).trim()] = true; });
 
       baris = master.filter(function (m) { return !nipPPK[String(m.nip).trim()]; }).map(function (m) {
-        var bln = bulanAntara(m.kontrakMulai, m.kontrakSelesai) + 1; // +1: nilai kontrak sudah termasuk THR
-        var pokok = m.hargaNegosiasi ? Math.round(Number(m.hargaNegosiasi) / bln) : 0;
+        // Gaji Pokok = Honorarium Bulanan sesuai Daftar Kuantitas & Harga SPK.
+        // TIDAK dihitung dari Harga Negosiasi/bulan kontrak — nilai itu total SPK
+        // (Honorarium + THR + iuran BPJS yang ditanggung institusi), bukan gaji bersih pegawai.
+        var pokok = angka(m.honorariumBulanan);
         return { nama: m.nama || "", nip: m.nip || "", jabatan: m.jabatan2026 || "", rekening: m.rekening || "", gajiPokok: pokok, potongan: 0 };
       });
 

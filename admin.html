@@ -194,8 +194,9 @@
           <label>Alamat<input type="text" id="m-alamat"></label>
           <div class="grid2">
             <label>Nilai HPS (Rp)<input type="text" id="m-hps" inputmode="numeric"></label>
-            <label>Harga Negosiasi (Rp)<input type="text" id="m-negosiasi" inputmode="numeric"></label>
+            <label>Harga Negosiasi (Rp) <span class="opsional">(total nilai SPK, termasuk THR &amp; BPJS)</span><input type="text" id="m-negosiasi" inputmode="numeric"></label>
           </div>
+          <label>Honorarium Bulanan (Rp) <span class="opsional">(gaji bersih/bulan sesuai Daftar Kuantitas &amp; Harga SPK — dipakai langsung sbg Gaji Pokok di Nominatif Gaji)</span><input type="text" id="m-honorarium" inputmode="numeric"></label>
           <label>Data Rekening<input type="text" id="m-rekening" placeholder="Bank - No. Rekening a.n. Nama"></label>
           <label>Pendidikan<input type="text" id="m-pendidikan" placeholder="mis. D-III"></label>
           <div class="grid2">
@@ -210,7 +211,7 @@
         <div id="master-info" class="status muted">Memuat...</div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Nama</th><th>Jabatan 2026</th><th>NIK</th><th>Harga Negosiasi</th><th>Kontrak Selesai</th><th>Diperbarui</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Nama</th><th>Jabatan 2026</th><th>NIK</th><th>Honorarium/Bulan</th><th>Kontrak Selesai</th><th>Diperbarui</th><th>Aksi</th></tr></thead>
             <tbody id="master-body"></tbody>
           </table>
         </div>

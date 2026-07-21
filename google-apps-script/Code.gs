@@ -44,7 +44,7 @@ const HEADER_PERANGKAT = [
 const HEADER_MASTER_PJLP = [
   "NIP/ID", "Nama", "NIK", "NPWP", "Jabatan 2026", "Alamat",
   "Nilai HPS (Rp)", "Harga Negosiasi (Rp)", "Data Rekening", "Pendidikan",
-  "Tanggal Mulai Kontrak", "Tanggal Selesai Kontrak", "Diperbarui"
+  "Tanggal Mulai Kontrak", "Tanggal Selesai Kontrak", "Diperbarui", "Honorarium Bulanan (Rp)"
 ];
 const HEADER_REGISTER_DOKUMEN = [
   "No File", "Jenis Dokumen", "Nomor Surat", "Tanggal", "Jabatan PJLP", "Nama PJLP", "Keterangan"
@@ -82,11 +82,13 @@ const SEED_REGISTER_DOKUMEN = [
   [30, "Nota Dinas Laporan Pemilihan", "2787/PP.9.30/PL.460/IV/2026", "2026-04-01", "Pengemudi Operasional", "Muhamat Weking, A.Md", "Pejabat Pengadaan → PPK"]
 ];
 // Seed sekali (idempotent): data master PJLP TA 2026 (isi awal, bisa diedit admin di panel)
+// Elemen terakhir tiap baris = Honorarium Bulanan (Rp), diambil dari SPK asli
+// (dipisah dari "now"/Diperbarui oleh seedDataAwal() di bawah).
 const SEED_MASTER_PJLP = [
-  ["8106036310990002", "Monica Huwae, A.Md", "8106036310990002", "20.139.103.4-951.000", "Petugas Layanan Informasi", "Kampung Wernas, Sorong Selatan", 46889061, 46889061, "BNI Sorong - 1853717189 a.n. Monica Huwae", "D-III", "2026-04-01", "2026-12-31"],
-  ["7404190107000004", "La Ode Faden Bilfar, A.Md.Pi", "7404190107000004", "62.425.102.1-951.000", "Content Creator", "Jl. Kapitan Pattimura Kel. Suprau, Kec. Maladumes, Kota Sorong", 46889061, 46889061, "BNI Manokwari - 1170375422 a.n. La Ode Faden", "D-III", "2026-04-01", "2026-12-31"],
-  ["7309066406000002", "Alda Wahdaniah, A.Md", "7309066406000002", "50.442.774.1-951.000", "Pramubakti", "Jln. Kilang Blok.D RT.03/RW.03", 41130742, 41130742, "BNI Sorong - 1857635100 a.n. Alda Wahdaniah", "D-III", "2026-04-01", "2026-12-31"],
-  ["8171020808820008", "Muhamat Weking, A.Md", "8171020808820008", "20.505.893.6.-951.000", "Pengemudi Operasional", "Jl. Kapitan Pattimura, Suprau, Maladum Mes, Kota Sorong", 41130742, 41130742, "BNI Sorong - 1795316943 a.n. Muhamat Weking", "D-III", "2026-04-01", "2026-12-31"]
+  ["8106036310990002", "Monica Huwae, A.Md", "8106036310990002", "20.139.103.4-951.000", "Petugas Layanan Informasi", "Kampung Wernas, Sorong Selatan", 46889061, 46889061, "BNI Sorong - 1853717189 a.n. Monica Huwae", "D-III", "2026-04-01", "2026-12-31", 4293240],
+  ["7404190107000004", "La Ode Faden Bilfar, A.Md.Pi", "7404190107000004", "62.425.102.1-951.000", "Content Creator", "Jl. Kapitan Pattimura Kel. Suprau, Kec. Maladumes, Kota Sorong", 46889061, 46889061, "BNI Manokwari - 1170375422 a.n. La Ode Faden", "D-III", "2026-04-01", "2026-12-31", 4293240],
+  ["7309066406000002", "Alda Wahdaniah, A.Md", "7309066406000002", "50.442.774.1-951.000", "Pramubakti", "Jln. Kilang Blok.D RT.03/RW.03", 41130742, 41130742, "BNI Sorong - 1857635100 a.n. Alda Wahdaniah", "D-III", "2026-04-01", "2026-12-31", 3766000],
+  ["8171020808820008", "Muhamat Weking, A.Md", "8171020808820008", "20.505.893.6.-951.000", "Pengemudi Operasional", "Jl. Kapitan Pattimura, Suprau, Maladum Mes, Kota Sorong", 41130742, 41130742, "BNI Sorong - 1795316943 a.n. Muhamat Weking", "D-III", "2026-04-01", "2026-12-31", 3766000]
 ];
 
 const DEFAULT_JAM_MASUK = "07:30";
@@ -355,7 +357,8 @@ function getDataMaster() {
       jabatan2026: r[4] || "", alamat: r[5] || "", nilaiHps: r[6] || "", hargaNegosiasi: r[7] || "",
       rekening: r[8] || "", pendidikan: r[9] || "",
       kontrakMulai: fmtTglFleksibel(r[10]), kontrakSelesai: fmtTglFleksibel(r[11]),
-      diperbarui: r[12] instanceof Date ? fmt(r[12], "yyyy-MM-dd HH:mm") : r[12]
+      diperbarui: r[12] instanceof Date ? fmt(r[12], "yyyy-MM-dd HH:mm") : r[12],
+      honorariumBulanan: r[13] || ""
     };
   });
 }
@@ -374,7 +377,7 @@ function simpanDataMaster(data) {
   const row = [
     String(data.nip), data.nama || "", data.nik || "", data.npwp || "", data.jabatan2026 || "",
     data.alamat || "", data.nilaiHps || "", data.hargaNegosiasi || "", data.rekening || "", data.pendidikan || "",
-    data.kontrakMulai || "", data.kontrakSelesai || "", now
+    data.kontrakMulai || "", data.kontrakSelesai || "", now, data.honorariumBulanan || ""
   ];
   if (existing) sheet.getRange(existing.rowIndex, 1, 1, row.length).setValues([row]);
   else sheet.appendRow(row);
@@ -559,7 +562,7 @@ function seedDataAwal() {
   const shMaster = getSheetMasterPjlp();
   if (shMaster.getDataRange().getNumRows() < 2 && SEED_MASTER_PJLP.length) {
     const now = new Date();
-    const rows = SEED_MASTER_PJLP.map(function (r) { return r.concat([now]); });
+    const rows = SEED_MASTER_PJLP.map(function (r) { return r.slice(0, 12).concat([now, r[12]]); });
     shMaster.getRange(2, 1, rows.length, HEADER_MASTER_PJLP.length).setValues(rows);
   }
 }
