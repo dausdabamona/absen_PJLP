@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slip Gaji PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .sg-layout { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .sg-layout { grid-template-columns: 1fr; } }
+
+    .kertas {
+      background: #fff; color: #000; border: 1px solid var(--border); border-radius: 8px;
+      padding: 28px 32px; font-family: "Times New Roman", Georgia, serif; font-size: 13px; line-height: 1.5;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06); max-width: 620px; margin: 0 auto;
+    }
+    .kop { display: flex; align-items: center; gap: 14px; text-align: left; }
+    .kop-logo { width: 58px; height: 58px; object-fit: contain; flex-shrink: 0; }
+    .kop-text { flex: 1; text-align: center; }
+    .kop-nama { font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .3px; }
+    .kop-alamat { font-size: 11px; }
+    .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 14px; }
+    .judul { text-align: center; font-weight: 700; text-decoration: underline; text-transform: uppercase; margin: 4px 0 2px; font-size: 15px; }
+    .nomor { text-align: center; font-size: 12px; margin-bottom: 14px; }
+
+    table.sg-data { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    table.sg-data td { padding: 3px 4px; vertical-align: top; }
+    table.sg-data td.label { width: 130px; }
+
+    table.sg-rincian { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12.5px; }
+    table.sg-rincian th, table.sg-rincian td { border: 1px solid #000; padding: 4px 7px; }
+    table.sg-rincian th { background: #eee; text-align: center; }
+    table.sg-rincian td.rp { text-align: right; white-space: nowrap; }
+    table.sg-rincian tr.subtotal td { font-weight: 700; background: #f7f7f7; }
+    table.sg-rincian input { width: 100%; border: 1px solid #ccc; padding: 2px 4px; font: inherit; text-align: right; background: #fffef0; }
+    .sg-bersih { border: 2px solid #000; border-radius: 6px; padding: 10px 16px; margin: 10px 0; text-align: center; }
+    .sg-bersih .label { font-size: 12px; }
+    .sg-bersih .nilai { font-weight: 700; font-size: 19px; }
+    .terbilang-baris { font-size: 12px; margin: 8px 0 14px; }
+
+    .info-bpjs { border: 1px dashed #888; border-radius: 6px; padding: 8px 12px; margin: 12px 0; font-size: 11.5px; background: #fafafa; }
+    .info-bpjs .judul-info { font-weight: 700; margin-bottom: 4px; }
+    .info-bpjs table { width: 100%; border-collapse: collapse; }
+    .info-bpjs td { padding: 1px 4px; }
+    .info-bpjs td.rp { text-align: right; }
+
+    .ttd-area { display: flex; justify-content: space-between; margin-top: 22px; gap: 20px; }
+    .ttd-blok { text-align: center; width: 46%; }
+    .ttd-space { height: 55px; }
+    .ttd-nama { font-weight: 700; text-decoration: underline; }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .app, .card { max-width: none; margin: 0; padding: 0; box-shadow: none; background: #fff; }
+      .sg-layout { display: block; }
+      .kertas { border: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 11.5pt; max-width: none; }
+      table.sg-rincian input { border: none; background: transparent; padding: 0; }
+      .ttd-area { break-inside: avoid; }
+      @page { size: A4 portrait; margin: 2cm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">💵</span>
+        <div>
+          <h1>Slip Gaji PJLP</h1>
+          <p class="subtitle">Per pegawai — cetak / simpan PDF</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="admin.html">&larr; Panel Admin</a>
+    </header>
+
+    <main class="card">
+      <div id="status-akses" class="status err hidden"></div>
+      <div id="konten" class="sg-layout hidden">
+        <!-- KONTROL -->
+        <div class="no-print">
+          <div id="banner-admin" class="info-jam hidden">👑 Slip Gaji untuk <b id="banner-admin-nama"></b>.</div>
+          <h2 class="seksi-judul">Data Slip Gaji</h2>
+          <form id="form-sg" autocomplete="off">
+            <label>Bulan/Periode Gaji<input type="month" id="s-bulan"></label>
+            <label>Nomor <span class="opsional">(opsional)</span><input type="text" id="s-nomor" placeholder="mis. 01/SG/PJLP/VII/2026"></label>
+            <label>Nama Instansi (Kop)<input type="text" id="s-instansi" value="POLITEKNIK KELAUTAN DAN PERIKANAN SORONG"></label>
+            <label>Alamat Instansi <span class="opsional">(opsional)</span><input type="text" id="s-alamat"></label>
+
+            <hr class="garis">
+            <label class="switch-row">
+              <span>🎁 Sertakan THR bulan ini (1× Honorarium)</span>
+              <input type="checkbox" id="s-thr">
+            </label>
+            <label>Potongan Lain <span class="opsional">(jika ada, mis. denda/pinjaman)</span>
+              <input type="text" id="s-potongan-ket" placeholder="Keterangan potongan (kosongkan jika tidak ada)">
+            </label>
+            <label>Nilai Potongan (Rp)<input type="text" id="s-potongan" inputmode="numeric" value="0"></label>
+
+            <hr class="garis">
+            <div class="grid2">
+              <label>Kota<input type="text" id="s-kota" value="Sorong"></label>
+              <label>Tanggal Dokumen<input type="date" id="s-tgl"></label>
+            </div>
+            <label>Dibuat Oleh (Bendahara/Kepegawaian)<input type="text" id="s-pembuat" placeholder="Nama pembuat slip"></label>
+
+            <hr class="garis">
+            <div class="seksi-info" style="margin-bottom:6px;">Mengetahui (PPK)</div>
+            <label>Nama PPK<input type="text" id="s-ppk-nama" value="Firdaus Dabamona, A.Md., S.T."></label>
+            <label>NIP PPK<input type="text" id="s-ppk-nip" value="198201032007011002"></label>
+
+            <button type="button" id="btn-cetak" class="submit">🖨️ Cetak / Simpan PDF</button>
+          </form>
+        </div>
+
+        <!-- PRATINJAU -->
+        <div>
+          <div class="seksi-info no-print">Pratinjau:</div>
+          <div id="dokumen" class="kertas">
+            <div class="kop">
+              <img class="kop-logo" src="assets/logo-kkp.png" alt="Logo KKP">
+              <div class="kop-text">
+                <div class="kop-nama" id="p-instansi"></div>
+                <div class="kop-alamat" id="p-alamat"></div>
+              </div>
+            </div>
+            <hr class="kop-garis">
+            <div class="judul">Slip Gaji / Honorarium PJLP</div>
+            <div class="nomor" id="p-sub"></div>
+
+            <table class="sg-data">
+              <tr><td class="label">Nama</td><td>: <b id="p-nama"></b></td></tr>
+              <tr><td class="label">NIP / ID</td><td>: <span id="p-nip"></span></td></tr>
+              <tr><td class="label">Jabatan</td><td>: <span id="p-jabatan"></span></td></tr>
+              <tr><td class="label">No. Rekening</td><td>: <span id="p-rekening"></span></td></tr>
+            </table>
+
+            <table class="sg-rincian">
+              <thead><tr><th colspan="2">Rincian Penerimaan</th></tr></thead>
+              <tbody>
+                <tr><td id="p-honor-label">Honorarium bulan berjalan</td><td class="rp" id="p-honor">0</td></tr>
+                <tr id="row-thr" class="hidden"><td>Tunjangan Hari Raya (THR)</td><td class="rp" id="p-thr">0</td></tr>
+                <tr class="subtotal"><td>Subtotal Penerimaan</td><td class="rp" id="p-sub-terima">0</td></tr>
+              </tbody>
+            </table>
+
+            <table class="sg-rincian">
+              <thead><tr><th colspan="2">Rincian Potongan</th></tr></thead>
+              <tbody>
+                <tr><td id="p-potongan-label">-</td><td class="rp" id="p-potongan">0</td></tr>
+                <tr class="subtotal"><td>Subtotal Potongan</td><td class="rp" id="p-sub-potongan">0</td></tr>
+              </tbody>
+            </table>
+
+            <div class="sg-bersih">
+              <div class="label">GAJI BERSIH DITERIMA</div>
+              <div class="nilai">Rp <span id="p-bersih">0</span></div>
+            </div>
+            <div class="terbilang-baris">Terbilang: <b id="p-terbilang"></b></div>
+
+            <div class="info-bpjs">
+              <div class="judul-info">Info: Iuran BPJS ditanggung institusi (bukan potongan gaji)</div>
+              <table>
+                <tr><td>BPJS Kesehatan (4%)</td><td class="rp" id="p-bpjs-kes">0</td></tr>
+                <tr><td>BPJS Ketenagakerjaan (JHT+JP+JKK+JKM, 6,24%)</td><td class="rp" id="p-bpjs-tk">0</td></tr>
+              </table>
+            </div>
+
+            <div class="ttd-area">
+              <div class="ttd-blok">
+                <div>Mengetahui,</div>
+                <div>Pejabat Pembuat Komitmen</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-ppk-nama"></div>
+                <div id="p-ppk-nip"></div>
+              </div>
+              <div class="ttd-blok">
+                <div id="p-kotatgl"></div>
+                <div>Diterima oleh,</div>
+                <div class="ttd-space"></div>
+                <div class="ttd-nama" id="p-terima-nama"></div>
+                <div id="p-terima-nip"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/slip-gaji.js"></script>
+</body>
+</html>

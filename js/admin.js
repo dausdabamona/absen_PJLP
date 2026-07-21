@@ -486,7 +486,7 @@
   /* ============== Buat Dokumen per PJLP ============== */
   $("dok-pilih").addEventListener("change", function () {
     var ada = !!this.value;
-    ["btn-dok-jurnal", "btn-dok-rekap", "btn-dok-ba", "btn-dok-kuitansi"].forEach(function (id) { $(id).disabled = !ada; });
+    ["btn-dok-jurnal", "btn-dok-rekap", "btn-dok-ba", "btn-dok-kuitansi", "btn-dok-slip"].forEach(function (id) { $(id).disabled = !ada; });
   });
   function targetTerpilih() {
     var sel = $("dok-pilih"), opt = sel.selectedOptions[0];
@@ -504,6 +504,7 @@
   $("btn-dok-rekap").addEventListener("click", function () { window.open("rekap.html", "_blank"); });
   $("btn-dok-ba").addEventListener("click", function () { bukaDokumen("berita-acara.html"); });
   $("btn-dok-kuitansi").addEventListener("click", function () { bukaDokumen("kuitansi.html"); });
+  $("btn-dok-slip").addEventListener("click", function () { bukaDokumen("slip-gaji.html"); });
   // Nominatif Gaji mencakup SEMUA pegawai sekaligus - tidak perlu pilih 1 pegawai dulu.
   $("btn-dok-nominatif").addEventListener("click", function () { window.open("nominatif-gaji.html", "_blank"); });
   $("btn-dok-bpjs").addEventListener("click", function () { window.open("bpjs.html", "_blank"); });
