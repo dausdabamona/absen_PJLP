@@ -144,7 +144,7 @@
       perangkat.forEach(function (d) { if (d.role === "PPK" && d.nip) nipPPK[String(d.nip).trim()] = true; });
 
       baris = master.filter(function (m) { return !nipPPK[String(m.nip).trim()]; }).map(function (m) {
-        var bln = bulanAntara(m.kontrakMulai, m.kontrakSelesai);
+        var bln = bulanAntara(m.kontrakMulai, m.kontrakSelesai) + 1; // +1: nilai kontrak sudah termasuk THR
         var pokok = m.hargaNegosiasi ? Math.round(Number(m.hargaNegosiasi) / bln) : 0;
         return { nama: m.nama || "", nip: m.nip || "", jabatan: m.jabatan2026 || "", rekening: m.rekening || "", gajiPokok: pokok, potongan: 0 };
       });
