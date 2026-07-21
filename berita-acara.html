@@ -15,7 +15,9 @@
       padding: 30px 34px; font-family: "Times New Roman", Georgia, serif; font-size: 14px; line-height: 1.6;
       box-shadow: 0 2px 12px rgba(0,0,0,.06);
     }
-    .kop { text-align: center; }
+    .kop { display: flex; align-items: center; gap: 14px; text-align: left; }
+    .kop-logo { width: 62px; height: 62px; object-fit: contain; flex-shrink: 0; }
+    .kop-text { flex: 1; text-align: center; }
     .kop-nama { font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .3px; }
     .kop-alamat { font-size: 12px; }
     .kop-garis { border: none; border-top: 2px solid #000; margin: 6px 0 16px; }
@@ -116,8 +118,11 @@
           <div class="seksi-info no-print">Pratinjau (yang akan dicetak):</div>
           <div id="dokumen" class="kertas">
             <div class="kop">
-              <div class="kop-nama" id="p-instansi"></div>
-              <div class="kop-alamat" id="p-alamat"></div>
+              <img class="kop-logo" src="assets/logo-kkp.png" alt="Logo KKP">
+              <div class="kop-text">
+                <div class="kop-nama" id="p-instansi"></div>
+                <div class="kop-alamat" id="p-alamat"></div>
+              </div>
             </div>
             <hr class="kop-garis">
             <div class="ba-judul" id="p-judul"></div>
