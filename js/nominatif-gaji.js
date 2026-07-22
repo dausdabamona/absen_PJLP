@@ -1,7 +1,9 @@
 /* ============================================================
    Daftar Nominatif Gaji PJLP — SEMUA pegawai sekaligus.
-   Wajib mode admin (PPK/Kepegawaian). Gaji pokok diambil dari
-   Honorarium Bulanan (Data Master PJLP), bisa dikoreksi manual.
+   Wajib mode admin (PPK/Kepegawaian). Gaji pokok prefill otomatis:
+   pakai Honorarium Bulanan (Data Master) bila terisi; bila kosong,
+   diestimasi dari Harga Negosiasi (dikurangi THR + BPJS). Selalu
+   bisa dikoreksi manual sebelum cetak.
    ============================================================ */
 
 (function () {
@@ -9,8 +11,28 @@
   var $ = function (id) { return document.getElementById(id); };
   var BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+  // Total iuran BPJS ditanggung institusi = 10,24% dari Honorarium/bulan
+  // (Kesehatan 4% + JHT 3,7% + JP 2% + JKK 0,24% + JKM 0,30%).
+  var RATE_BPJS = 0.1024;
+
   function pad(n) { return n < 10 ? "0" + n : "" + n; }
   function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function parseTgl(s) { var p = /(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return p ? new Date(+p[1], +p[2] - 1, +p[3]) : null; }
+  function bulanAntara(mulai, selesai) {
+    var a = parseTgl(mulai), b = parseTgl(selesai);
+    if (!a || !b) return 9; // default periode kontrak PJLP (April-Desember = 9 bln)
+    var bln = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()) + 1;
+    return bln > 0 ? bln : 9;
+  }
+  // Estimasi Honorarium/bulan dari total nilai kontrak bila Honorarium
+  // Bulanan belum diisi. Total kontrak = Honor×bulan (A) + 1×Honor THR (B)
+  // + BPJS 10,24%×Honor×bulan (C) = Honor×(bulan×1,1024 + 1).
+  function estimasiHonor(hargaNegosiasi, kontrakMulai, kontrakSelesai) {
+    var total = Number(hargaNegosiasi) || 0;
+    if (!total) return 0;
+    var bulan = bulanAntara(kontrakMulai, kontrakSelesai);
+    return Math.round(total / (bulan * (1 + RATE_BPJS) + 1));
+  }
   function fmtTanggal(s) { var p = /(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return p ? (+p[3] + " " + BULAN[+p[2] - 1] + " " + p[1]) : (s || "-"); }
   function lokal() { var n = new Date(); return new Date(n.getTime() + n.getTimezoneOffset() * 60000 + (CONFIG.OFFSET_JAM || 0) * 3600000); }
   function bulanIni() { var d = lokal(); return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
@@ -136,10 +158,11 @@
       perangkat.forEach(function (d) { if (d.role === "PPK" && d.nip) nipPPK[String(d.nip).trim()] = true; });
 
       baris = master.filter(function (m) { return !nipPPK[String(m.nip).trim()]; }).map(function (m) {
-        // Gaji Pokok = Honorarium Bulanan sesuai Daftar Kuantitas & Harga SPK.
-        // TIDAK dihitung dari Harga Negosiasi/bulan kontrak — nilai itu total SPK
-        // (Honorarium + THR + iuran BPJS yang ditanggung institusi), bukan gaji bersih pegawai.
+        // Utamakan Honorarium Bulanan (persis dari SPK). Bila belum diisi di
+        // Data Master, estimasi dari Harga Negosiasi (dikurangi THR + BPJS)
+        // supaya kolom terisi otomatis, bukan 0 — tetap bisa diedit manual.
         var pokok = angka(m.honorariumBulanan);
+        if (!pokok) pokok = estimasiHonor(m.hargaNegosiasi, m.kontrakMulai, m.kontrakSelesai);
         return { nama: m.nama || "", nip: m.nip || "", jabatan: m.jabatan2026 || "", rekening: m.rekening || "", gajiPokok: pokok, potongan: 0 };
       });
 
