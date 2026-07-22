@@ -137,6 +137,7 @@ function doPost(e) {
       case "setStatusPerangkat": return setStatusPerangkat(data);
       case "hapusPerangkat":     return hapusPerangkat(data);
       case "editPerangkat":      return editPerangkat(data);
+      case "setRolePerangkat":   return setRolePerangkat(data);
       case "simpanPengaturan":   return simpanPengaturan(data);
       case "adminDataMaster":    return adminDataMaster(data);
       case "simpanDataMaster":   return simpanDataMaster(data);
