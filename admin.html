@@ -60,6 +60,21 @@
           <span id="dash-tanggal" class="status muted"></span>
         </div>
 
+        <div id="kotak-ganti-pw" class="card hidden" style="margin-bottom:16px; background:var(--warning-bg,#fff8e1);">
+          <h3 class="seksi-judul">🔑 Ganti Password Saya</h3>
+          <p class="seksi-info">Ganti password akun Anda sendiri. Disarankan segera ganti password default setelah login pertama.</p>
+          <form id="form-ganti-pw" autocomplete="off">
+            <label>Password Baru <span class="opsional">(min. 6 karakter)</span>
+              <input type="password" id="gp-password" placeholder="Password baru">
+            </label>
+            <label>Ulangi Password Baru
+              <input type="password" id="gp-password2" placeholder="Ketik ulang password baru">
+            </label>
+            <button type="submit" id="btn-ganti-pw" class="submit">Simpan Password Baru</button>
+          </form>
+          <div id="ganti-pw-pesan" class="pesan hidden"></div>
+        </div>
+
         <div class="kpi-grid">
           <div class="kpi-card kpi-biru">
             <div class="kpi-angka" id="kpi-total">-</div>

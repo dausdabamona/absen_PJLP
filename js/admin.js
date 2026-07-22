@@ -89,6 +89,9 @@
     // Form Pengaturan (lokasi/jam kerja/akun) hanya untuk PPK; Operator hanya lihat Perangkat.
     var cardPengaturan = $("card-pengaturan");
     if (cardPengaturan) cardPengaturan.classList.toggle("hidden", role !== "ppk");
+    // "Ganti Password Saya" untuk Operator & Kepegawaian (PPK ganti lewat Pengaturan).
+    var kotakGantiPw = $("kotak-ganti-pw");
+    if (kotakGantiPw) kotakGantiPw.classList.toggle("hidden", role === "ppk");
   }
 
   function pegawaiAktifUnik() {
@@ -363,6 +366,30 @@
     }).catch(function (err) {
       pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Pengaturan"; });
+  });
+
+  /* ---------- Ganti Password Saya (Operator/Kepegawaian) ---------- */
+  var formGantiPw = document.getElementById("form-ganti-pw");
+  if (formGantiPw) formGantiPw.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var pesan = $("ganti-pw-pesan"), btn = $("btn-ganti-pw");
+    var pw1 = $("gp-password").value, pw2 = $("gp-password2").value;
+    pesan.classList.remove("hidden");
+    if (pw1.length < 6) { pesan.className = "pesan err"; pesan.textContent = "Password baru minimal 6 karakter."; return; }
+    if (pw1 !== pw2) { pesan.className = "pesan err"; pesan.textContent = "Ulangi password tidak sama."; return; }
+    btn.disabled = true; btn.textContent = "Menyimpan...";
+    API.post({ action: "gantiPasswordSendiri", email: email, password: password, passwordBaru: pw1, deviceId: "" })
+      .then(function (res) {
+        pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
+        pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
+        if (res.status === "success") {
+          // Perbarui password sesi supaya request berikutnya tetap terautentikasi.
+          password = pw1; sessionStorage.setItem("pjlp_admin_pw", pw1);
+          $("gp-password").value = ""; $("gp-password2").value = "";
+        }
+      })
+      .catch(function (err) { pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; })
+      .finally(function () { btn.disabled = false; btn.textContent = "Simpan Password Baru"; });
   });
 
   /* ---------- Keluar (batalkan perangkat admin) ---------- */

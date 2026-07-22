@@ -138,6 +138,7 @@ function doPost(e) {
       case "hapusPerangkat":     return hapusPerangkat(data);
       case "editPerangkat":      return editPerangkat(data);
       case "setRolePerangkat":   return setRolePerangkat(data);
+      case "gantiPasswordSendiri": return gantiPasswordSendiri(data);
       case "simpanPengaturan":   return simpanPengaturan(data);
       case "adminDataMaster":    return adminDataMaster(data);
       case "simpanDataMaster":   return simpanDataMaster(data);
@@ -333,6 +334,19 @@ function editPerangkat(data) {
   sheet.getRange(dev.rowIndex, 3).setValue(String(data.nipBaru).trim());
   sheet.getRange(dev.rowIndex, 6).setValue(new Date());
   return jsonOutput({ status: "success", message: "Data perangkat diperbarui." });
+}
+
+function gantiPasswordSendiri(data) {
+  // Setiap staf (PPK/Operator/Kepegawaian) mengganti password AKUNNYA SENDIRI.
+  // Verifikasi email + password LAMA dulu (via cek* per role), lalu set yang baru.
+  if (!data.passwordBaru || String(data.passwordBaru).length < 6) {
+    return jsonOutput({ status: "error", message: "Password baru minimal 6 karakter." });
+  }
+  const p = props();
+  if (cekAdmin(data)) { p.setProperty("ADMIN_PASSWORD", String(data.passwordBaru)); return jsonOutput({ status: "success", message: "Password PPK diperbarui.", role: "ppk" }); }
+  if (cekOperator(data)) { p.setProperty("OPERATOR_PASSWORD", String(data.passwordBaru)); return jsonOutput({ status: "success", message: "Password Operator diperbarui.", role: "operator" }); }
+  if (cekKepegawaian(data)) { p.setProperty("KEPEGAWAIAN_PASSWORD", String(data.passwordBaru)); return jsonOutput({ status: "success", message: "Password Kepegawaian diperbarui.", role: "kepegawaian" }); }
+  return jsonOutput({ status: "error", message: "Email atau password lama salah." });
 }
 
 function setRolePerangkat(data) {
