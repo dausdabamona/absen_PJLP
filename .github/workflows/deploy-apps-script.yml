@@ -34,7 +34,9 @@ jobs:
           node-version: "20"
 
       - name: Install clasp
-        run: npm install -g @google/clasp
+        # Pin ke clasp 2.4.2 (stabil) agar format ~/.clasprc.json & perintah
+        # push/deploy cocok dengan kredensial yang dibuat `clasp login` versi sama.
+        run: npm install -g @google/clasp@2.4.2
 
       - name: Siapkan kredensial clasp dari Secret
         env:
@@ -55,3 +57,12 @@ jobs:
 
       - name: Push ke Apps Script
         run: clasp push -f
+
+      - name: Aktifkan versi baru ke Web App (/exec)
+        # Update deployment web app yang aktif ke versi terbaru, sehingga URL /exec
+        # langsung menjalankan kode terbaru TANPA perlu klik "Versi baru" manual.
+        # continue-on-error: kalau langkah ini gagal, minimal kode sudah ter-push;
+        # Anda tetap bisa aktifkan manual di Apps Script > Kelola deployment.
+        continue-on-error: true
+        run: |
+          clasp deploy -i "AKfycbxsQXxfUL5_nlspnxZF8pNwaghRbH4gk0jA6duPpcKdPBG7Mz4YVlqdpDoM_o-s2L8f" -d "Auto-deploy via GitHub Actions"
