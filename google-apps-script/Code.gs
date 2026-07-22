@@ -253,7 +253,8 @@ function izin(data) {
 
 /* ====================== REKAP =========================== */
 function rekapData(data, namaSheet, header) {
-  const isAdmin = data.adminPassword && data.adminPassword === getAdminPassword();
+  // Semua staf (PPK/Kepegawaian/Operator) melihat rekap penuh; PJLP biasa hanya miliknya.
+  const isAdmin = isPasswordStaf(data.adminPassword);
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(namaSheet);
   if (!sheet) return jsonOutput({ status: "success", data: [], isAdmin: !!isAdmin });
   const values = sheet.getDataRange().getValues();
@@ -291,17 +292,18 @@ function rekapData(data, namaSheet, header) {
 function adminLogin(data) {
   if (cekAdmin(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "ppk" });
   if (cekKepegawaian(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "kepegawaian" });
+  if (cekOperator(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "operator" });
   return jsonOutput({ status: "error", message: "Email atau password salah." });
 }
 
 function adminData(data) {
-  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
-  const role = cekAdmin(data) ? "ppk" : "kepegawaian";
+  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  const role = cekAdmin(data) ? "ppk" : (cekOperator(data) ? "operator" : "kepegawaian");
   return jsonOutput({ status: "success", role: role, perangkat: listPerangkat(), pengaturan: getPengaturanPublic() });
 }
 
 function setStatusPerangkat(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  if (!cekAdminAtauOperator(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   if (["pending", "disetujui", "diblokir"].indexOf(data.statusBaru) === -1) return jsonOutput({ status: "error", message: "Status tidak valid." });
   const dev = cariPerangkat(data.deviceId);
   if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
@@ -311,7 +313,7 @@ function setStatusPerangkat(data) {
 }
 
 function hapusPerangkat(data) {
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  if (!cekAdminAtauOperator(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   const dev = cariPerangkat(data.deviceId);
   if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
   getSheetPerangkat().deleteRow(dev.rowIndex);
@@ -321,7 +323,7 @@ function hapusPerangkat(data) {
 function editPerangkat(data) {
   // Perbaiki Nama/NIP satu baris perangkat (mis. typo NIP yang menggagalkan penggabungan
   // laporan lintas-perangkat berdasarkan NIP).
-  if (!cekAdmin(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
+  if (!cekAdminAtauOperator(data)) return jsonOutput({ status: "error", message: "Email atau password admin salah." });
   const dev = cariPerangkat(data.deviceId);
   if (!dev) return jsonOutput({ status: "error", message: "Perangkat tidak ditemukan." });
   if (!data.namaBaru || !String(data.namaBaru).trim()) return jsonOutput({ status: "error", message: "Nama wajib diisi." });
@@ -366,11 +368,11 @@ function getDataMaster() {
 function adminDataMaster(data) {
   // PPK atau Kepegawaian: mengembalikan data sensitif (NIK/NPWP/rekening). Endpoint mandiri
   // PJLP (cekPerangkat) TIDAK memakai fungsi ini dan tidak pernah mengirim data ini ke device biasa.
-  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   return jsonOutput({ status: "success", master: getDataMaster() });
 }
 function simpanDataMaster(data) {
-  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   if (!data.nip) return jsonOutput({ status: "error", message: "NIP/ID wajib diisi." });
   const sheet = getSheetMasterPjlp();
   const existing = getDataMaster().filter(function (m) { return m.nip === String(data.nip); })[0];
@@ -387,7 +389,7 @@ function simpanDataMaster(data) {
 
 /* ============== REGISTER DOKUMEN PENGADAAN (admin-only, referensi) ============== */
 function adminRegisterDokumen(data) {
-  if (!cekAdminAtauKepegawaian(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   const values = getSheetRegisterDokumen().getDataRange().getValues();
   const headers = values.shift();
   const out = values.map(function (row) {
@@ -431,6 +433,14 @@ function simpanPengaturan(data) {
     if (String(data.kepegawaianPasswordBaru).length < 6) return jsonOutput({ status: "error", message: "Password Kepegawaian minimal 6 karakter." });
     p.setProperty("KEPEGAWAIAN_PASSWORD", String(data.kepegawaianPasswordBaru));
   }
+  if (data.operatorEmailBaru !== undefined && data.operatorEmailBaru !== "") {
+    if (String(data.operatorEmailBaru).indexOf("@") === -1) return jsonOutput({ status: "error", message: "Email Operator tidak valid." });
+    p.setProperty("OPERATOR_EMAIL", String(data.operatorEmailBaru).trim());
+  }
+  if (data.operatorPasswordBaru) {
+    if (String(data.operatorPasswordBaru).length < 6) return jsonOutput({ status: "error", message: "Password Operator minimal 6 karakter." });
+    p.setProperty("OPERATOR_PASSWORD", String(data.operatorPasswordBaru));
+  }
   return jsonOutput({ status: "success", message: "Pengaturan disimpan." });
 }
 
@@ -463,10 +473,38 @@ function cekKepegawaian(data) {
   return emailOk && passOk;
 }
 function cekAdminAtauKepegawaian(data) { return cekAdmin(data) || cekKepegawaian(data); }
-function isPasswordAdminAtauKepegawaian(pw) {
+function getOperatorEmail() {
+  // Default agar Operator bisa langsung masuk; ganti lewat Pengaturan setelah login.
+  let em = props().getProperty("OPERATOR_EMAIL");
+  if (!em) { em = "rumaropen86elis@gmail.com"; props().setProperty("OPERATOR_EMAIL", em); }
+  return em;
+}
+function getOperatorPassword() {
+  // Password awal mudah "opr123456"; WAJIB diganti PPK/Operator setelah login pertama.
+  let pw = props().getProperty("OPERATOR_PASSWORD");
+  if (!pw) { pw = "opr123456"; props().setProperty("OPERATOR_PASSWORD", pw); }
+  return pw;
+}
+function cekOperator(data) {
+  // Role Operator: akun terpisah. Akses = Dashboard/Rekap + Data PJLP + Buat
+  // Dokumen + kelola Perangkat (setujui/blokir/edit/hapus). TIDAK bisa ubah
+  // Pengaturan sistem maupun menandai PPK. Belum aktif sampai PPK mengaturnya.
+  const em = getOperatorEmail(), pw = getOperatorPassword();
+  if (!em || !pw) return false;
+  const emailOk = data.email !== undefined && String(data.email).trim().toLowerCase() === em.toLowerCase();
+  const passOk = data.password !== undefined && String(data.password) === pw;
+  return emailOk && passOk;
+}
+// Semua staf berwenang (PPK/Kepegawaian/Operator): akses data PJLP, dokumen, rekap.
+function cekStaf(data) { return cekAdmin(data) || cekKepegawaian(data) || cekOperator(data); }
+// Kelola perangkat (setujui/blokir/edit/hapus): PPK + Operator (bukan Kepegawaian).
+function cekAdminAtauOperator(data) { return cekAdmin(data) || cekOperator(data); }
+function isPasswordStaf(pw) {
   if (!pw) return false;
-  const kepPw = getKepegawaianPassword();
-  return String(pw) === getAdminPassword() || (!!kepPw && String(pw) === kepPw);
+  if (String(pw) === getAdminPassword()) return true;
+  const kepPw = getKepegawaianPassword(); if (kepPw && String(pw) === kepPw) return true;
+  const opPw = getOperatorPassword(); if (opPw && String(pw) === opPw) return true;
+  return false;
 }
 
 /* ====================== JAM KERJA ======================= */
@@ -512,7 +550,8 @@ function getPengaturanPublic() {
     lat: isNaN(s.lat) ? "" : s.lat, lng: isNaN(s.lng) ? "" : s.lng, radius: s.radius || "",
     namaInstansi: s.namaInstansi, jamMasuk: s.jamMasuk, jamPulang: s.jamPulang,
     bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi,
-    bebasJumat: s.bebasJumat, adminEmail: getAdminEmail(), kepegawaianEmail: getKepegawaianEmail()
+    bebasJumat: s.bebasJumat, adminEmail: getAdminEmail(), kepegawaianEmail: getKepegawaianEmail(),
+    operatorEmail: getOperatorEmail()
   };
 }
 

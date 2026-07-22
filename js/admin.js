@@ -64,6 +64,7 @@
         $("s-buffer-pulang").value = (s.bufferPulang !== undefined && s.bufferPulang !== "") ? s.bufferPulang : "";
         $("s-email").value = s.adminEmail || "";
         $("s-kepegawaian-email").value = s.kepegawaianEmail || "";
+        $("s-operator-email").value = s.operatorEmail || "";
         semuaPerangkat = res.perangkat || [];
         render();
         isiDropdownPegawai();
@@ -73,14 +74,21 @@
   }
 
   function terapkanRoleUI() {
-    $("badge-role").textContent = role === "ppk" ? "👑 PPK" : "🗂️ Kepegawaian";
-    // Tab "Pengaturan & Perangkat" khusus PPK (lokasi/jam kerja/persetujuan perangkat/password).
+    $("badge-role").textContent = role === "ppk" ? "👑 PPK" : (role === "operator" ? "🛠️ Operator" : "🗂️ Kepegawaian");
+    // Tab "Pengaturan & Perangkat" tampil untuk PPK & Operator (keduanya kelola perangkat);
+    // disembunyikan untuk Kepegawaian.
+    var bolehUtama = (role === "ppk" || role === "operator");
     var tabUtama = document.querySelector('.tab[data-dash="utama"]');
-    if (tabUtama) tabUtama.classList.toggle("hidden", role !== "ppk");
-    if (role !== "ppk" && tabUtama && tabUtama.classList.contains("aktif")) {
-      // Kalau sedang di tab yang disembunyikan, pindah ke Dashboard.
-      document.querySelector('.tab[data-dash="beranda"]').click();
+    if (tabUtama) {
+      tabUtama.classList.toggle("hidden", !bolehUtama);
+      if (!bolehUtama && tabUtama.classList.contains("aktif")) {
+        // Kalau sedang di tab yang disembunyikan, pindah ke Dashboard.
+        document.querySelector('.tab[data-dash="beranda"]').click();
+      }
     }
+    // Form Pengaturan (lokasi/jam kerja/akun) hanya untuk PPK; Operator hanya lihat Perangkat.
+    var cardPengaturan = $("card-pengaturan");
+    if (cardPengaturan) cardPengaturan.classList.toggle("hidden", role !== "ppk");
   }
 
   function pegawaiAktifUnik() {
@@ -247,7 +255,10 @@
       if (d.status !== "disetujui") aksi += '<button class="mini primary aksi" data-id="' + esc(d.deviceId) + '" data-act="disetujui">Setujui</button> ';
       if (d.status !== "diblokir") aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="diblokir">Blokir</button> ';
       aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="edit">Edit</button> ';
-      aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="' + (d.role === "PPK" ? "lepasppk" : "jadippk") + '">' + (d.role === "PPK" ? "Jadikan PJLP" : "Jadikan PPK") + '</button> ';
+      // "Jadikan PPK / Jadikan PJLP" = penandaan role sensitif, khusus PPK.
+      if (role === "ppk") {
+        aksi += '<button class="mini aksi" data-id="' + esc(d.deviceId) + '" data-act="' + (d.role === "PPK" ? "lepasppk" : "jadippk") + '">' + (d.role === "PPK" ? "Jadikan PJLP" : "Jadikan PPK") + '</button> ';
+      }
       aksi += '<button class="mini danger aksi" data-id="' + esc(d.deviceId) + '" data-act="hapus">Hapus</button>';
       var labelPPK = d.role === "PPK" ? ' <span class="badge menunggu small">PPK</span>' : "";
       var namaSel = "<td>" + esc(d.nama) + labelPPK + (d.kemungkinanSama ? '<br><span class="small muted">🔗 Kemungkinan sama dengan ' + esc(d.kemungkinanSama) + "</span>" : "") + "</td>";
@@ -339,14 +350,16 @@
       passwordBaru: pwBaru,
       emailAdminBaru: (emailBaru && emailBaru.toLowerCase() !== email.toLowerCase()) ? emailBaru : "",
       kepegawaianEmailBaru: $("s-kepegawaian-email").value.trim(),
-      kepegawaianPasswordBaru: $("s-kepegawaian-password").value
+      kepegawaianPasswordBaru: $("s-kepegawaian-password").value,
+      operatorEmailBaru: $("s-operator-email").value.trim(),
+      operatorPasswordBaru: $("s-operator-password").value
     }).then(function (res) {
       pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
       pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
       pesan.classList.remove("hidden");
       if (res.status === "success" && pwBaru) { password = pwBaru; sessionStorage.setItem("pjlp_admin_pw", pwBaru); $("s-password").value = ""; }
       if (res.status === "success" && emailBaru) { email = emailBaru; sessionStorage.setItem("pjlp_admin_email", emailBaru); }
-      if (res.status === "success") $("s-kepegawaian-password").value = "";
+      if (res.status === "success") { $("s-kepegawaian-password").value = ""; $("s-operator-password").value = ""; }
     }).catch(function (err) {
       pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Pengaturan"; });

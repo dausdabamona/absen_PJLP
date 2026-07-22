@@ -100,7 +100,7 @@
       </div>
 
       <div id="dash-utama" class="hidden">
-      <div class="card" style="margin-bottom:16px;">
+      <div class="card" id="card-pengaturan" style="margin-bottom:16px;">
         <h2 class="seksi-judul">📍 Lokasi & Pengaturan</h2>
         <p class="seksi-info">Absen hanya diterima dalam radius titik di bawah (kecuali Mode Uji Coba aktif).</p>
         <form id="form-pengaturan" autocomplete="off">
@@ -149,6 +149,14 @@
           <label>Email Kepegawaian<input type="email" id="s-kepegawaian-email" placeholder="kepegawaian@polikpsorong.ac.id"></label>
           <label>Password Kepegawaian <span class="opsional">(kosongkan jika tidak diubah)</span>
             <input type="password" id="s-kepegawaian-password" placeholder="Password baru (min. 6 karakter)">
+          </label>
+
+          <hr class="garis">
+          <h3 class="seksi-judul">🛠️ Akun Operator</h3>
+          <p class="seksi-info">Akses: Dashboard/Rekap, Data PJLP, Buat Dokumen, dan kelola Perangkat (setujui/blokir/edit/hapus). Tidak bisa ubah Pengaturan ini atau menandai PPK.</p>
+          <label>Email Operator<input type="email" id="s-operator-email" placeholder="operator@polikpsorong.ac.id"></label>
+          <label>Password Operator <span class="opsional">(kosongkan jika tidak diubah)</span>
+            <input type="password" id="s-operator-password" placeholder="Password baru (min. 6 karakter)">
           </label>
 
           <button type="submit" id="btn-simpan" class="submit">Simpan Pengaturan</button>
