@@ -169,6 +169,18 @@ input:focus, textarea:focus {
 .status.err { color: var(--danger); }
 .status.warn { color: var(--warning); }
 
+/* Panduan GPS (muncul otomatis saat akurasi jelek / lokasi gagal) */
+.panduan-gps { margin-top: 14px; border: 1px solid var(--warning); border-radius: 12px; background: var(--warning-bg); overflow: hidden; }
+.panduan-gps > summary { cursor: pointer; padding: 12px 14px; font-weight: 600; color: var(--warning); font-size: 13.5px; list-style: none; }
+.panduan-gps > summary::-webkit-details-marker { display: none; }
+.panduan-gps > summary::before { content: "▸ "; }
+.panduan-gps[open] > summary::before { content: "▾ "; }
+.panduan-isi { padding: 0 16px 14px; font-size: 13px; color: var(--text); line-height: 1.55; }
+.panduan-isi ol { margin: 8px 0 8px 4px; padding-left: 20px; }
+.panduan-isi li { margin-bottom: 7px; }
+.panduan-isi i { color: var(--muted); font-style: normal; background: rgba(0,0,0,.05); padding: 1px 5px; border-radius: 5px; }
+.panduan-catatan { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--warning); }
+
 /* Photo */
 .photo-btn {
   width: 100%;

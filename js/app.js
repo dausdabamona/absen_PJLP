@@ -54,8 +54,12 @@
   function tampil(nama) { Object.keys(seksi).forEach(function (k) { seksi[k].classList.toggle("hidden", k !== nama); }); }
   function tampilkanPesan(teks, ok) { pesan.textContent = teks; pesan.className = "pesan " + (ok ? "ok" : "err"); pesan.classList.remove("hidden"); }
 
+  function bukaPanduanGps() {
+    var g = document.getElementById("panduan-gps");
+    if (g) { g.open = true; g.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  }
   function ambilLokasi(elStatus, btn, simpan) {
-    if (!navigator.geolocation) { elStatus.textContent = "Browser tidak mendukung GPS."; elStatus.className = "status err"; return; }
+    if (!navigator.geolocation) { elStatus.textContent = "Browser tidak mendukung GPS."; elStatus.className = "status err"; bukaPanduanGps(); return; }
     elStatus.textContent = "Mengambil lokasi GPS..."; elStatus.className = "status muted"; btn.disabled = true;
 
     // GPS butuh beberapa detik untuk "mengunci" satelit; bacaan pertama sering
@@ -80,6 +84,7 @@
       elStatus.innerHTML = "✔ Lokasi terekam (±" + terbaik.akurasi + " m). " + peringatan +
         '<a href="https://maps.google.com/?q=' + terbaik.lat + "," + terbaik.lng + '" target="_blank" rel="noopener">Lihat peta</a>';
       elStatus.className = "status " + (terbaik.akurasi > 100 ? "warn" : "ok");
+      if (terbaik.akurasi > 100) bukaPanduanGps(); // akurasi rendah -> tampilkan solusi
     }
 
     timer = setTimeout(tuntas, MAX_WAKTU);
@@ -95,7 +100,7 @@
       },
       function (err) {
         // Kalau sudah ada bacaan terbaik, biarkan timer/target yang menuntaskan.
-        if (!terbaik && !selesai) { selesai = true; bersihkan(); btn.disabled = false; elStatus.textContent = "Gagal mengambil lokasi: " + err.message; elStatus.className = "status err"; }
+        if (!terbaik && !selesai) { selesai = true; bersihkan(); btn.disabled = false; elStatus.textContent = "Gagal mengambil lokasi: " + err.message; elStatus.className = "status err"; bukaPanduanGps(); }
       },
       { enableHighAccuracy: true, timeout: MAX_WAKTU, maximumAge: 0 }
     );
