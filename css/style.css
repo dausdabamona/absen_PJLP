@@ -167,6 +167,7 @@ input:focus, textarea:focus {
 .muted { color: var(--muted); }
 .status.ok { color: var(--success); }
 .status.err { color: var(--danger); }
+.status.warn { color: var(--warning); }
 
 /* Photo */
 .photo-btn {

@@ -320,18 +320,35 @@
     });
   });
 
-  /* ---------- Lokasi saya ---------- */
+  /* ---------- Lokasi saya (best-of-N agar titik kampus presisi) ---------- */
   $("btn-lokasi-saya").addEventListener("click", function () {
-    const info = $("lokasi-saya-info");
+    const info = $("lokasi-saya-info"), btn = this;
     if (!navigator.geolocation) { info.textContent = "Browser tidak mendukung GPS."; return; }
-    info.textContent = "Mengambil lokasi...";
-    navigator.geolocation.getCurrentPosition(
+    info.textContent = "Mengambil lokasi GPS..."; info.className = "status muted"; btn.disabled = true;
+
+    var TARGET = 20, MAX_WAKTU = 20000; // titik kampus perlu presisi tinggi
+    var terbaik = null, watchId = null, selesai = false, timer = null;
+    function bersihkan() {
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      if (timer !== null) { clearTimeout(timer); timer = null; }
+    }
+    function tuntas() {
+      if (selesai) return; selesai = true; bersihkan(); btn.disabled = false;
+      if (!terbaik) { info.textContent = "Gagal mengambil lokasi (GPS tidak memberi sinyal)."; info.className = "status err"; return; }
+      $("s-lat").value = terbaik.lat.toFixed(7); $("s-lng").value = terbaik.lng.toFixed(7);
+      info.textContent = "✔ Koordinat terisi (±" + terbaik.akurasi + " m)." + (terbaik.akurasi > 50 ? " Akurasi kurang presisi — sebaiknya ambil ulang di luar ruangan." : "");
+      info.className = "status " + (terbaik.akurasi > 50 ? "warn" : "ok");
+    }
+    timer = setTimeout(tuntas, MAX_WAKTU);
+    watchId = navigator.geolocation.watchPosition(
       function (pos) {
-        $("s-lat").value = pos.coords.latitude.toFixed(7); $("s-lng").value = pos.coords.longitude.toFixed(7);
-        info.textContent = "✔ Koordinat terisi (±" + Math.round(pos.coords.accuracy) + " m)."; info.className = "status ok";
+        var akr = Math.round(pos.coords.accuracy);
+        if (!terbaik || akr < terbaik.akurasi) terbaik = { lat: pos.coords.latitude, lng: pos.coords.longitude, akurasi: akr };
+        info.textContent = "Mencari sinyal akurat... terbaik ±" + terbaik.akurasi + " m"; info.className = "status muted";
+        if (terbaik.akurasi <= TARGET) tuntas();
       },
-      function (err) { info.textContent = "Gagal: " + err.message; info.className = "status err"; },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      function (err) { if (!terbaik && !selesai) { selesai = true; bersihkan(); btn.disabled = false; info.textContent = "Gagal: " + err.message; info.className = "status err"; } },
+      { enableHighAccuracy: true, timeout: MAX_WAKTU, maximumAge: 0 }
     );
   });
 

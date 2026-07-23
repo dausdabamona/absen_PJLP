@@ -56,17 +56,48 @@
 
   function ambilLokasi(elStatus, btn, simpan) {
     if (!navigator.geolocation) { elStatus.textContent = "Browser tidak mendukung GPS."; elStatus.className = "status err"; return; }
-    elStatus.textContent = "Mengambil lokasi..."; elStatus.className = "status muted"; btn.disabled = true;
-    navigator.geolocation.getCurrentPosition(
+    elStatus.textContent = "Mengambil lokasi GPS..."; elStatus.className = "status muted"; btn.disabled = true;
+
+    // GPS butuh beberapa detik untuk "mengunci" satelit; bacaan pertama sering
+    // kasar (±200 m). Kita pantau beberapa bacaan lalu ambil yang PALING akurat,
+    // berhenti lebih awal begitu akurasi sudah cukup baik.
+    var TARGET_AKURASI = 30;   // meter: kalau sudah <= ini, langsung pakai
+    var MAX_WAKTU = 20000;     // ms: batas total menunggu GPS konvergen
+    var terbaik = null, watchId = null, selesai = false, timer = null;
+
+    function bersihkan() {
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      if (timer !== null) { clearTimeout(timer); timer = null; }
+    }
+    function tuntas() {
+      if (selesai) return;
+      selesai = true; bersihkan(); btn.disabled = false;
+      if (!terbaik) { elStatus.textContent = "Gagal mengambil lokasi (GPS tidak memberi sinyal)."; elStatus.className = "status err"; return; }
+      simpan(terbaik);
+      var peringatan = terbaik.akurasi > 100
+        ? "<b>Akurasi rendah</b> — coba di luar ruangan / dekat jendela, aktifkan GPS presisi tinggi, lalu ambil ulang. "
+        : "";
+      elStatus.innerHTML = "✔ Lokasi terekam (±" + terbaik.akurasi + " m). " + peringatan +
+        '<a href="https://maps.google.com/?q=' + terbaik.lat + "," + terbaik.lng + '" target="_blank" rel="noopener">Lihat peta</a>';
+      elStatus.className = "status " + (terbaik.akurasi > 100 ? "warn" : "ok");
+    }
+
+    timer = setTimeout(tuntas, MAX_WAKTU);
+    watchId = navigator.geolocation.watchPosition(
       function (pos) {
-        const lok = { lat: pos.coords.latitude, lng: pos.coords.longitude, akurasi: Math.round(pos.coords.accuracy) };
-        simpan(lok);
-        elStatus.innerHTML = "✔ Lokasi terekam (±" + lok.akurasi + " m). " +
-          '<a href="https://maps.google.com/?q=' + lok.lat + "," + lok.lng + '" target="_blank" rel="noopener">Lihat peta</a>';
-        elStatus.className = "status ok"; btn.disabled = false;
+        var akr = Math.round(pos.coords.accuracy);
+        if (!terbaik || akr < terbaik.akurasi) {
+          terbaik = { lat: pos.coords.latitude, lng: pos.coords.longitude, akurasi: akr };
+        }
+        elStatus.textContent = "Mencari sinyal GPS akurat... terbaik ±" + terbaik.akurasi + " m (tunggu sebentar di tempat terbuka)";
+        elStatus.className = "status muted";
+        if (terbaik.akurasi <= TARGET_AKURASI) tuntas(); // sudah cukup akurat
       },
-      function (err) { elStatus.textContent = "Gagal mengambil lokasi: " + err.message; elStatus.className = "status err"; btn.disabled = false; },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      function (err) {
+        // Kalau sudah ada bacaan terbaik, biarkan timer/target yang menuntaskan.
+        if (!terbaik && !selesai) { selesai = true; bersihkan(); btn.disabled = false; elStatus.textContent = "Gagal mengambil lokasi: " + err.message; elStatus.className = "status err"; }
+      },
+      { enableHighAccuracy: true, timeout: MAX_WAKTU, maximumAge: 0 }
     );
   }
   function kompresGambar(dataUrl, maxLebar, kualitas, cb) {

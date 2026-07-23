@@ -188,7 +188,10 @@ function absen(data) {
     if (isNaN(set.lat) || isNaN(set.lng) || !set.radius) return jsonOutput({ status: "error", message: "Lokasi kampus belum diatur oleh admin." });
     if (!data.lat || !data.lng) return jsonOutput({ status: "error", message: "Lokasi GPS wajib diambil." });
     jarak = haversine(data.lat, data.lng, set.lat, set.lng);
-    if (jarak > set.radius) return jsonOutput({ status: "error", message: "Absen ditolak: Anda di luar area " + set.namaInstansi + " (±" + Math.round(jarak) + " m, maksimal " + set.radius + " m)." });
+    // Toleransi margin akurasi GPS (dibatasi maks 100 m agar tidak disalahgunakan):
+    // orang yang benar-benar di kantor tak ditolak hanya karena GPS-nya meleset.
+    const toleransi = Math.min(Math.max(parseInt(data.akurasi, 10) || 0, 0), 100);
+    if (jarak - toleransi > set.radius) return jsonOutput({ status: "error", message: "Absen ditolak: Anda di luar area " + set.namaInstansi + " (±" + Math.round(jarak) + " m, maksimal " + set.radius + " m). Pastikan GPS presisi tinggi aktif & Anda di lokasi." });
   } else if (data.lat && data.lng && !isNaN(set.lat) && !isNaN(set.lng)) {
     jarak = haversine(data.lat, data.lng, set.lat, set.lng);
   }
