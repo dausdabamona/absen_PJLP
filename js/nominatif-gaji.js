@@ -163,8 +163,9 @@
         // supaya kolom terisi otomatis, bukan 0 — tetap bisa diedit manual.
         var pokok = angka(m.honorariumBulanan);
         if (!pokok) pokok = estimasiHonor(m.hargaNegosiasi, m.kontrakMulai, m.kontrakSelesai);
-        // Potongan default: BPJS Kesehatan 1% (ditanggung pegawai, akun 811153). Bisa diedit manual.
-        var potongan = Math.round(pokok * 0.01);
+        // Potongan default pekerja: BPJS Kesehatan 1% (akun 811153) + PPh 21 2% = 3% dari
+        // Honorarium. Bisa diedit manual.
+        var potongan = Math.round(pokok * 0.01) + Math.round(pokok * 0.02);
         return { nama: m.nama || "", nip: m.nip || "", jabatan: m.jabatan2026 || "", rekening: m.rekening || "", gajiPokok: pokok, potongan: potongan };
       });
 

@@ -12,6 +12,7 @@
 
   var RATE_KESEHATAN = 0.04;       // 4% ditanggung pemberi kerja (akun 811154)
   var RATE_KESEHATAN_PEGAWAI = 0.01; // 1% potongan pegawai (akun 811153)
+  var RATE_PPH = 0.02;             // PPh 21 2% (potongan pekerja)
   var RATE_JHT = 0.037;
   var RATE_JP = 0.02;
   var RATE_JKK = 0.0024;
@@ -81,15 +82,17 @@
     var subTerima = honor + thr;
     $("p-sub-terima").textContent = rupiah(subTerima);
 
-    // Potongan wajib: BPJS Kesehatan 1% dari Honorarium (ditanggung pegawai, akun 811153).
+    // Potongan wajib pekerja: BPJS Kesehatan 1% (akun 811153) + PPh 21 2%, dari Honorarium.
     var bpjsKesPegawai = Math.round(honor * RATE_KESEHATAN_PEGAWAI);
+    var pph = Math.round(honor * RATE_PPH);
     $("p-bpjs-kes-pegawai").textContent = rupiah(bpjsKesPegawai);
+    $("p-pph").textContent = rupiah(pph);
 
     var potongan = angka(String($("s-potongan").value).replace(/[^\d]/g, ""));
     var ketPotongan = $("s-potongan-ket").value.trim();
     $("p-potongan-label").textContent = potongan > 0 ? (ketPotongan || "Potongan lain") : "-";
     $("p-potongan").textContent = rupiah(potongan);
-    var totalPotongan = bpjsKesPegawai + potongan;
+    var totalPotongan = bpjsKesPegawai + pph + potongan;
     $("p-sub-potongan").textContent = rupiah(totalPotongan);
 
     var bersih = Math.max(0, subTerima - totalPotongan);
