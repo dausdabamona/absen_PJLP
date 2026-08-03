@@ -10,7 +10,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-  var RATE_KESEHATAN = 0.04;
+  var RATE_KESEHATAN = 0.04;         // 4% pemberi kerja (akun 811154)
+  var RATE_KESEHATAN_PEKERJA = 0.01; // 1% pekerja (akun 811153)
   var RATE_JHT = 0.037;
   var RATE_JP = 0.02;
   var RATE_JKK = 0.0024;
@@ -56,14 +57,16 @@
   function hitungBaris(m) {
     var honor = angka(m.honorariumBulanan);
     var kesehatan = Math.round(honor * RATE_KESEHATAN);
+    var kesehatanPekerja = Math.round(honor * RATE_KESEHATAN_PEKERJA);
     var jht = Math.round(honor * RATE_JHT);
     var jp = Math.round(honor * RATE_JP);
     var jkk = Math.round(honor * RATE_JKK);
     var jkm = Math.round(honor * RATE_JKM);
-    var total = kesehatan + jht + jp + jkk + jkm;
+    var total = kesehatan + jht + jp + jkk + jkm; // total iuran pemberi kerja (10,24%)
     return {
       nama: m.nama || "", nip: m.nip || "", jabatan: m.jabatan2026 || "",
-      honorarium: honor, kesehatan: kesehatan, jht: jht, jp: jp, jkk: jkk, jkm: jkm, total: total
+      honorarium: honor, kesehatan: kesehatan, kesehatanPekerja: kesehatanPekerja,
+      jht: jht, jp: jp, jkk: jkk, jkm: jkm, total: total
     };
   }
 
@@ -76,8 +79,9 @@
     $("p-sub").textContent = sub;
 
     if (!baris.length) {
-      $("p-body").innerHTML = '<tr><td colspan="11" class="kosong-baris">Tidak ada data pegawai (Data Master PJLP kosong, semua bertanda PPK, atau Honorarium Bulanan belum diisi).</td></tr>';
-      ["p-tot-honor", "p-tot-kes", "p-tot-jht", "p-tot-jp", "p-tot-jkk", "p-tot-jkm", "p-total"].forEach(function (id) { $(id).textContent = "0"; });
+      $("p-body").innerHTML = '<tr><td colspan="12" class="kosong-baris">Tidak ada data pegawai (Data Master PJLP kosong, semua bertanda PPK, atau Honorarium Bulanan belum diisi).</td></tr>';
+      ["p-tot-honor", "p-tot-kes", "p-tot-kes-pekerja", "p-tot-jht", "p-tot-jp", "p-tot-jkk", "p-tot-jkm", "p-total",
+       "p-spm-kes4", "p-spm-kes1", "p-spm-tk"].forEach(function (id) { $(id).textContent = "0"; });
       $("p-terbilang").textContent = "nol rupiah";
     } else {
       $("p-body").innerHTML = baris.map(function (b, i) {
@@ -88,6 +92,7 @@
           "<td>" + esc(b.jabatan) + "</td>" +
           "<td class=\"rp\">" + rupiah(b.honorarium) + "</td>" +
           "<td class=\"rp\">" + rupiah(b.kesehatan) + "</td>" +
+          "<td class=\"rp\">" + rupiah(b.kesehatanPekerja) + "</td>" +
           "<td class=\"rp\">" + rupiah(b.jht) + "</td>" +
           "<td class=\"rp\">" + rupiah(b.jp) + "</td>" +
           "<td class=\"rp\">" + rupiah(b.jkk) + "</td>" +
@@ -96,8 +101,11 @@
         "</tr>";
       }).join("");
       var sum = function (key) { return baris.reduce(function (s, b) { return s + b[key]; }, 0); };
+      var totKes = sum("kesehatan"), totKesPekerja = sum("kesehatanPekerja");
+      var totTk = sum("jht") + sum("jp") + sum("jkk") + sum("jkm");
       $("p-tot-honor").textContent = rupiah(sum("honorarium"));
-      $("p-tot-kes").textContent = rupiah(sum("kesehatan"));
+      $("p-tot-kes").textContent = rupiah(totKes);
+      $("p-tot-kes-pekerja").textContent = rupiah(totKesPekerja);
       $("p-tot-jht").textContent = rupiah(sum("jht"));
       $("p-tot-jp").textContent = rupiah(sum("jp"));
       $("p-tot-jkk").textContent = rupiah(sum("jkk"));
@@ -105,6 +113,10 @@
       var total = sum("total");
       $("p-total").textContent = rupiah(total);
       $("p-terbilang").textContent = terbilang(total) + " rupiah";
+      // Ringkasan nilai untuk SPM
+      $("p-spm-kes4").textContent = rupiah(totKes);
+      $("p-spm-kes1").textContent = rupiah(totKesPekerja);
+      $("p-spm-tk").textContent = rupiah(totTk);
     }
 
     $("p-kotatgl").textContent = ($("b-kota").value.trim() || "") + ", " + fmtTanggal($("b-tgl").value || hariIni());

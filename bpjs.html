@@ -116,6 +116,7 @@
                   <th>Jabatan</th>
                   <th style="width:95px;">Honorarium (Rp)</th>
                   <th style="width:75px;">Kesehatan 4%<br>(akun 811154)</th>
+                  <th style="width:70px;">Kesehatan 1%<br>(akun 811153)</th>
                   <th style="width:75px;">JHT<br>(3,7%)</th>
                   <th style="width:70px;">JP<br>(2%)</th>
                   <th style="width:65px;">JKK<br>(0,24%)</th>
@@ -129,6 +130,7 @@
                   <td colspan="4" style="text-align:right;">TOTAL</td>
                   <td class="rp" id="p-tot-honor">-</td>
                   <td class="rp" id="p-tot-kes">-</td>
+                  <td class="rp" id="p-tot-kes-pekerja">-</td>
                   <td class="rp" id="p-tot-jht">-</td>
                   <td class="rp" id="p-tot-jp">-</td>
                   <td class="rp" id="p-tot-jkk">-</td>
@@ -138,7 +140,17 @@
               </tfoot>
             </table>
             <div class="terbilang-baris">Total iuran BPJS ditanggung institusi: <b id="p-terbilang"></b></div>
-            <div class="catatan-kaki">Tarif sesuai SPK PJLP: BPJS Kesehatan 4% (akun 811154), BPJS Ketenagakerjaan (JHT 3,7% + JP 2% + JKK 0,24% + JKM 0,30%) dari Honorarium Bulanan — ditanggung pemberi kerja. BPJS Kesehatan 1% (akun 811153) ditanggung pegawai, dipotong dari gaji (lihat Slip Gaji / Daftar Nominatif), tidak termasuk di daftar ini.</div>
+
+            <table class="bpjs" style="margin-top:6px;">
+              <thead><tr><th colspan="3">Nilai untuk SPM (total seluruh pegawai)</th></tr></thead>
+              <tbody>
+                <tr><td>BPJS Kesehatan 4% — ditanggung pemberi kerja</td><td>Akun <b>811154</b></td><td class="rp"><b>Rp <span id="p-spm-kes4">0</span></b></td></tr>
+                <tr><td>BPJS Kesehatan 1% — potongan pekerja</td><td>Akun <b>811153</b></td><td class="rp"><b>Rp <span id="p-spm-kes1">0</span></b></td></tr>
+                <tr><td>BPJS Ketenagakerjaan (JHT+JP+JKK+JKM) — pemberi kerja</td><td>—</td><td class="rp"><b>Rp <span id="p-spm-tk">0</span></b></td></tr>
+              </tbody>
+            </table>
+
+            <div class="catatan-kaki">Tarif sesuai SPK PJLP: BPJS Kesehatan 4% (akun 811154) + BPJS Ketenagakerjaan (JHT 3,7% + JP 2% + JKK 0,24% + JKM 0,30%) ditanggung pemberi kerja; BPJS Kesehatan 1% (akun 811153) potongan pekerja — semua dari Honorarium Bulanan. Kolom "Total Iuran/Bulan" = iuran pemberi kerja (10,24%), belum termasuk potongan 1% pekerja.</div>
 
             <div class="ttd-area">
               <div class="ttd-blok">
