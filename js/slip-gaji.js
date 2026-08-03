@@ -97,7 +97,13 @@
     $("p-terbilang").textContent = terbilang(bersih) + " rupiah";
 
     $("p-bpjs-kes").textContent = rupiah(Math.round(honor * RATE_KESEHATAN));
-    $("p-bpjs-tk").textContent = rupiah(Math.round(honor * RATE_TK));
+    var jht = Math.round(honor * RATE_JHT), jp = Math.round(honor * RATE_JP);
+    var jkk = Math.round(honor * RATE_JKK), jkm = Math.round(honor * RATE_JKM);
+    $("p-bpjs-jht").textContent = rupiah(jht);
+    $("p-bpjs-jp").textContent = rupiah(jp);
+    $("p-bpjs-jkk").textContent = rupiah(jkk);
+    $("p-bpjs-jkm").textContent = rupiah(jkm);
+    $("p-bpjs-tk").textContent = rupiah(jht + jp + jkk + jkm);
 
     $("p-kotatgl").textContent = ($("s-kota").value.trim() || "") + ", " + fmtTanggal($("s-tgl").value || hariIni());
     $("p-terima-nama").textContent = nama || "(.................)";
