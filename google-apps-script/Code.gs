@@ -216,7 +216,12 @@ function jurnal(data) {
   if (!dev) return jsonOutput({ status: "error", code: "belum_daftar", message: "Perangkat belum terdaftar." });
   if (dev.status !== "disetujui") return jsonOutput({ status: "error", code: dev.status, message: "Perangkat berstatus '" + dev.status + "'. Hubungi admin." });
   if (!data.kegiatan || !String(data.kegiatan).trim()) return jsonOutput({ status: "error", message: "Deskripsi kegiatan wajib diisi." });
-  if (!data.foto) return jsonOutput({ status: "error", message: "Foto kegiatan wajib diambil." });
+  // Dukung fotoList (baru, maks 3) maupun foto (lama, 1 foto) agar kompatibel.
+  let fotos = [];
+  if (Array.isArray(data.fotoList)) fotos = data.fotoList.filter(function (f) { return f; });
+  else if (data.foto) fotos = [data.foto];
+  if (!fotos.length) return jsonOutput({ status: "error", message: "Foto kegiatan wajib diambil." });
+  fotos = fotos.slice(0, 3); // batasi maksimal 3 foto per kegiatan
 
   const asli = new Date();
   let waktu = asli;
@@ -227,7 +232,10 @@ function jurnal(data) {
     const dipilih = new Date(bagian[0], bagian[1] - 1, bagian[2], asli.getHours(), asli.getMinutes(), asli.getSeconds());
     if (dipilih <= asli) waktu = dipilih;
   }
-  const fotoUrl = simpanFoto(data.foto, dev.nama, "jurnal", asli);
+  // Simpan tiap foto ke Drive; beberapa URL digabung 1 sel (dipisah baris baru).
+  const fotoUrl = fotos.map(function (f, i) {
+    return simpanFoto(f, dev.nama, fotos.length > 1 ? "jurnal" + (i + 1) : "jurnal", asli);
+  }).join("\n");
   const linkLok = (data.lat && data.lng) ? "https://maps.google.com/?q=" + data.lat + "," + data.lng : "";
   getSheetJurnal().appendRow([
     waktu, dev.deviceId, dev.nama, dev.nip, fmt(waktu, "yyyy-MM-dd"), fmt(waktu, "HH:mm:ss"),

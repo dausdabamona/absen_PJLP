@@ -31,8 +31,8 @@
     absen: $("seksi-absen")
   };
 
-  let lokasiAbsen = null, lokasiJurnal = null, fotoJurnal = null;
-  let lokasiSusulan = null, fotoSusulan = null;
+  let lokasiAbsen = null, lokasiJurnal = null;
+  let lokasiSusulan = null;
   let reminderTimer = null;
 
   $("device-id-singkat").textContent = deviceId.slice(0, 8) + "…";
@@ -265,33 +265,60 @@
       .finally(function () { btn.disabled = false; tampilkanTombolAbsen(); });
   });
 
-  /* ---------- Jurnal ---------- */
-  const inputJFoto = $("j-foto");
-  $("btn-j-foto").addEventListener("click", function () { inputJFoto.click(); });
-  inputJFoto.addEventListener("change", function () {
-    const file = inputJFoto.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      kompresGambar(e.target.result, 1000, 0.7, function (dataUrl) {
-        fotoJurnal = dataUrl; $("j-preview").src = dataUrl;
-        $("j-preview-wrap").classList.remove("hidden"); $("btn-j-foto").textContent = "Ganti Foto";
+  // Pengelola hingga maxN foto: kompres, tampilkan thumbnail, bisa hapus per foto.
+  function pengelolaFotoMulti(inputEl, btnEl, wrapEl, maxN, labelDefault) {
+    var list = [];
+    function render() {
+      wrapEl.innerHTML = "";
+      list.forEach(function (dataUrl, i) {
+        var d = document.createElement("div"); d.className = "thumb";
+        var im = document.createElement("img"); im.src = dataUrl; im.alt = "Foto " + (i + 1);
+        var x = document.createElement("button"); x.type = "button"; x.className = "thumb-x"; x.setAttribute("aria-label", "Hapus foto"); x.textContent = "×";
+        x.addEventListener("click", function () { list.splice(i, 1); render(); });
+        d.appendChild(im); d.appendChild(x); wrapEl.appendChild(d);
       });
-    };
-    reader.readAsDataURL(file);
-  });
+      wrapEl.classList.toggle("hidden", list.length === 0);
+      var sisa = maxN - list.length;
+      btnEl.disabled = sisa <= 0;
+      btnEl.textContent = list.length === 0 ? labelDefault : (sisa > 0 ? "Tambah Foto (" + list.length + "/" + maxN + ")" : "Maks " + maxN + " foto");
+    }
+    btnEl.addEventListener("click", function () { if (list.length < maxN) inputEl.click(); });
+    inputEl.addEventListener("change", function () {
+      var files = Array.prototype.slice.call(inputEl.files || []);
+      inputEl.value = ""; // reset agar file yang sama bisa dipilih lagi
+      if (!files.length) return;
+      var muat = files.slice(0, maxN - list.length);
+      if (files.length > muat.length) tampilkanPesan("Maksimal " + maxN + " foto per kegiatan.", false);
+      muat.forEach(function (file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          kompresGambar(e.target.result, 1000, 0.7, function (dataUrl) {
+            if (list.length < maxN) list.push(dataUrl);
+            render();
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+    render();
+    return { get: function () { return list; }, reset: function () { list.length = 0; render(); } };
+  }
+
+  /* ---------- Jurnal ---------- */
+  var fotoJurnalMgr = pengelolaFotoMulti($("j-foto"), $("btn-j-foto"), $("j-preview-wrap"), 3, "Ambil / Pilih Foto");
   $("btn-j-lokasi").addEventListener("click", function () { ambilLokasi($("j-status-lokasi"), $("btn-j-lokasi"), function (l) { lokasiJurnal = l; }); });
   $("form-jurnal").addEventListener("submit", function (ev) {
     ev.preventDefault();
     const kegiatan = $("j-kegiatan").value.trim();
     if (!kegiatan) { tampilkanPesan("Deskripsi kegiatan wajib diisi.", false); return; }
-    if (!fotoJurnal) { tampilkanPesan("Foto kegiatan wajib diambil.", false); return; }
+    var fotos = fotoJurnalMgr.get();
+    if (!fotos.length) { tampilkanPesan("Foto kegiatan wajib diambil (minimal 1).", false); return; }
     const btn = $("btn-j-submit"); btn.disabled = true; btn.textContent = "Menyimpan..."; pesan.classList.add("hidden");
-    API.post({ action: "jurnal", kegiatan: kegiatan, foto: fotoJurnal, lat: lokasiJurnal ? lokasiJurnal.lat : "", lng: lokasiJurnal ? lokasiJurnal.lng : "" })
+    API.post({ action: "jurnal", kegiatan: kegiatan, fotoList: fotos, lat: lokasiJurnal ? lokasiJurnal.lat : "", lng: lokasiJurnal ? lokasiJurnal.lng : "" })
       .then(function (res) {
         if (res.status === "success") {
           tampilkanPesan("✔ " + res.message, true);
-          fotoJurnal = null; lokasiJurnal = null; $("j-kegiatan").value = "";
-          $("j-preview-wrap").classList.add("hidden"); $("btn-j-foto").textContent = "Ambil / Pilih Foto";
+          fotoJurnalMgr.reset(); lokasiJurnal = null; $("j-kegiatan").value = "";
           $("j-status-lokasi").textContent = "Lokasi belum diambil."; $("j-status-lokasi").className = "status muted";
           tandaiJurnalTerisi();
         } else { tampilkanPesan(res.message || "Gagal menyimpan jurnal.", false); if (res.code && res.code !== "disetujui") cekStatus(); }
@@ -302,19 +329,7 @@
 
   /* ---------- Jurnal Susulan (hari yang telah lewat) ---------- */
   $("su-tanggal").max = hariIni();
-  const inputSuFoto = $("su-foto");
-  $("btn-su-foto").addEventListener("click", function () { inputSuFoto.click(); });
-  inputSuFoto.addEventListener("change", function () {
-    const file = inputSuFoto.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      kompresGambar(e.target.result, 1000, 0.7, function (dataUrl) {
-        fotoSusulan = dataUrl; $("su-preview").src = dataUrl;
-        $("su-preview-wrap").classList.remove("hidden"); $("btn-su-foto").textContent = "Ganti Foto";
-      });
-    };
-    reader.readAsDataURL(file);
-  });
+  var fotoSusulanMgr = pengelolaFotoMulti($("su-foto"), $("btn-su-foto"), $("su-preview-wrap"), 3, "Ambil / Pilih Foto");
   $("btn-su-lokasi").addEventListener("click", function () { ambilLokasi($("su-status-lokasi"), $("btn-su-lokasi"), function (l) { lokasiSusulan = l; }); });
   $("form-jurnal-susulan").addEventListener("submit", function (ev) {
     ev.preventDefault();
@@ -323,14 +338,14 @@
     if (tanggal > hariIni()) { tampilkanPesan("Tanggal tidak boleh di masa depan.", false); return; }
     const kegiatan = $("su-kegiatan").value.trim();
     if (!kegiatan) { tampilkanPesan("Deskripsi kegiatan wajib diisi.", false); return; }
-    if (!fotoSusulan) { tampilkanPesan("Foto kegiatan wajib diambil.", false); return; }
+    var fotos = fotoSusulanMgr.get();
+    if (!fotos.length) { tampilkanPesan("Foto kegiatan wajib diambil (minimal 1).", false); return; }
     const btn = $("btn-su-submit"); btn.disabled = true; btn.textContent = "Menyimpan..."; pesan.classList.add("hidden");
-    API.post({ action: "jurnal", kegiatan: kegiatan, foto: fotoSusulan, tanggalKegiatan: tanggal, lat: lokasiSusulan ? lokasiSusulan.lat : "", lng: lokasiSusulan ? lokasiSusulan.lng : "" })
+    API.post({ action: "jurnal", kegiatan: kegiatan, fotoList: fotos, tanggalKegiatan: tanggal, lat: lokasiSusulan ? lokasiSusulan.lat : "", lng: lokasiSusulan ? lokasiSusulan.lng : "" })
       .then(function (res) {
         if (res.status === "success") {
           tampilkanPesan("✔ " + res.message, true);
-          fotoSusulan = null; lokasiSusulan = null; $("su-kegiatan").value = ""; $("su-tanggal").value = "";
-          $("su-preview-wrap").classList.add("hidden"); $("btn-su-foto").textContent = "Ambil / Pilih Foto";
+          fotoSusulanMgr.reset(); lokasiSusulan = null; $("su-kegiatan").value = ""; $("su-tanggal").value = "";
           $("su-status-lokasi").textContent = "Lokasi belum diambil."; $("su-status-lokasi").className = "status muted";
         } else { tampilkanPesan(res.message || "Gagal menyimpan jurnal susulan.", false); if (res.code && res.code !== "disetujui") cekStatus(); }
       })

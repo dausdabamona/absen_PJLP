@@ -101,7 +101,11 @@
       { judul: "Jam", get: function (r) { return cari(r, ["Jam"]); } },
       { judul: "Nama", get: function (r) { return cari(r, ["Nama"]); } },
       { judul: "Kegiatan", get: function (r) { return cari(r, ["Kegiatan"]); } },
-      { judul: "Foto", html: true, get: function (r) { return link(cari(r, ["Foto"]), "Lihat"); }, raw: function (r) { return cari(r, ["Foto"]); } },
+      { judul: "Foto", html: true, get: function (r) {
+          var v = cari(r, ["Foto"]); if (!v) return "-";
+          var urls = String(v).split(/[\n\r]+/).filter(Boolean);
+          return urls.map(function (u, i) { return link(u, urls.length > 1 ? "Foto " + (i + 1) : "Lihat"); }).join(" ");
+        }, raw: function (r) { return cari(r, ["Foto"]); } },
       { judul: "Lokasi", html: true, get: function (r) { return link(cari(r, ["Link Lokasi"]), "Peta"); }, raw: function (r) { return cari(r, ["Link Lokasi"]); } }
     ]
   };

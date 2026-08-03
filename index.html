@@ -117,10 +117,10 @@
               <textarea id="j-kegiatan" rows="3" placeholder="Tuliskan kegiatan yang dilakukan..." required></textarea>
             </label>
             <div class="field-group">
-              <div class="field-head"><span>📷 Foto Kegiatan</span></div>
-              <input type="file" id="j-foto" accept="image/*" hidden>
+              <div class="field-head"><span>📷 Foto Kegiatan <span class="opsional">(maks 3)</span></span></div>
+              <input type="file" id="j-foto" accept="image/*" multiple hidden>
               <button type="button" id="btn-j-foto" class="photo-btn">Ambil / Pilih Foto</button>
-              <div id="j-preview-wrap" class="preview hidden"><img id="j-preview" alt="Pratinjau"></div>
+              <div id="j-preview-wrap" class="preview-multi hidden"></div>
             </div>
             <div class="field-group">
               <div class="field-head">
@@ -141,10 +141,10 @@
               <textarea id="su-kegiatan" rows="3" placeholder="Tuliskan kegiatan yang dilakukan pada tanggal tersebut..." required></textarea>
             </label>
             <div class="field-group">
-              <div class="field-head"><span>📷 Foto Kegiatan</span></div>
-              <input type="file" id="su-foto" accept="image/*" hidden>
+              <div class="field-head"><span>📷 Foto Kegiatan <span class="opsional">(maks 3)</span></span></div>
+              <input type="file" id="su-foto" accept="image/*" multiple hidden>
               <button type="button" id="btn-su-foto" class="photo-btn">Ambil / Pilih Foto</button>
-              <div id="su-preview-wrap" class="preview hidden"><img id="su-preview" alt="Pratinjau"></div>
+              <div id="su-preview-wrap" class="preview-multi hidden"></div>
             </div>
             <div class="field-group">
               <div class="field-head">

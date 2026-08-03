@@ -53,10 +53,16 @@
       }).join("");
     }
 
-    // Lampiran foto (opsional)
+    // Lampiran foto (opsional). Satu baris jurnal bisa punya beberapa foto
+    // (URL dipisah baris baru) -> tiap foto jadi 1 item lampiran.
     if ($("l-foto").checked) {
-      var fotos = data.map(function (r) { return { url: thumbUrl(cari(r, ["Foto"])), tgl: fmtTanggal(tgl10(cari(r, ["Tanggal", "Timestamp"]))) }; })
-        .filter(function (f) { return f.url; });
+      var fotos = [];
+      data.forEach(function (r) {
+        var tgl = fmtTanggal(tgl10(cari(r, ["Tanggal", "Timestamp"])));
+        String(cari(r, ["Foto"]) || "").split(/[\n\r]+/).filter(Boolean).forEach(function (u) {
+          var t = thumbUrl(u); if (t) fotos.push({ url: t, tgl: tgl });
+        });
+      });
       if (fotos.length) {
         $("p-foto-grid").innerHTML = fotos.map(function (f) {
           return '<div class="foto-item"><img src="' + esc(f.url) + '" alt="foto"><div>' + esc(f.tgl) + "</div></div>";
