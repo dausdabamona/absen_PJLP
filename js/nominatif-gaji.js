@@ -163,7 +163,9 @@
         // supaya kolom terisi otomatis, bukan 0 — tetap bisa diedit manual.
         var pokok = angka(m.honorariumBulanan);
         if (!pokok) pokok = estimasiHonor(m.hargaNegosiasi, m.kontrakMulai, m.kontrakSelesai);
-        return { nama: m.nama || "", nip: m.nip || "", jabatan: m.jabatan2026 || "", rekening: m.rekening || "", gajiPokok: pokok, potongan: 0 };
+        // Potongan default: BPJS Kesehatan 1% (ditanggung pegawai, akun 811153). Bisa diedit manual.
+        var potongan = Math.round(pokok * 0.01);
+        return { nama: m.nama || "", nip: m.nip || "", jabatan: m.jabatan2026 || "", rekening: m.rekening || "", gajiPokok: pokok, potongan: potongan };
       });
 
       $("ng-status").textContent = baris.length ? ("Ditemukan " + baris.length + " pegawai.") : "Belum ada Data Master PJLP.";

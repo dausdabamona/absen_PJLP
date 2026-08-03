@@ -10,7 +10,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-  var RATE_KESEHATAN = 0.04;
+  var RATE_KESEHATAN = 0.04;       // 4% ditanggung pemberi kerja (akun 811154)
+  var RATE_KESEHATAN_PEGAWAI = 0.01; // 1% potongan pegawai (akun 811153)
   var RATE_JHT = 0.037;
   var RATE_JP = 0.02;
   var RATE_JKK = 0.0024;
@@ -80,13 +81,18 @@
     var subTerima = honor + thr;
     $("p-sub-terima").textContent = rupiah(subTerima);
 
+    // Potongan wajib: BPJS Kesehatan 1% dari Honorarium (ditanggung pegawai, akun 811153).
+    var bpjsKesPegawai = Math.round(honor * RATE_KESEHATAN_PEGAWAI);
+    $("p-bpjs-kes-pegawai").textContent = rupiah(bpjsKesPegawai);
+
     var potongan = angka(String($("s-potongan").value).replace(/[^\d]/g, ""));
     var ketPotongan = $("s-potongan-ket").value.trim();
     $("p-potongan-label").textContent = potongan > 0 ? (ketPotongan || "Potongan lain") : "-";
     $("p-potongan").textContent = rupiah(potongan);
-    $("p-sub-potongan").textContent = rupiah(potongan);
+    var totalPotongan = bpjsKesPegawai + potongan;
+    $("p-sub-potongan").textContent = rupiah(totalPotongan);
 
-    var bersih = Math.max(0, subTerima - potongan);
+    var bersih = Math.max(0, subTerima - totalPotongan);
     $("p-bersih").textContent = rupiah(bersih);
     $("p-terbilang").textContent = terbilang(bersih) + " rupiah";
 
