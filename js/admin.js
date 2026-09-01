@@ -65,6 +65,9 @@
         $("s-email").value = s.adminEmail || "";
         $("s-kepegawaian-email").value = s.kepegawaianEmail || "";
         $("s-operator-email").value = s.operatorEmail || "";
+        if ($("s-wadir2-email")) $("s-wadir2-email").value = s.wadir2Email || "";
+        if ($("s-bau-email")) $("s-bau-email").value = s.bauEmail || "";
+        if ($("s-direktur-email")) $("s-direktur-email").value = s.direkturEmail || "";
         semuaPerangkat = res.perangkat || [];
         render();
         isiDropdownPegawai();
@@ -74,22 +77,32 @@
   }
 
   function terapkanRoleUI() {
-    $("badge-role").textContent = role === "ppk" ? "👑 PPK" : (role === "operator" ? "🛠️ Operator" : "🗂️ Kepegawaian");
-    // Tab "Pengaturan & Perangkat" tampil untuk PPK & Operator (keduanya kelola perangkat);
-    // disembunyikan untuk Kepegawaian.
-    var bolehUtama = (role === "ppk" || role === "operator");
-    var tabUtama = document.querySelector('.tab[data-dash="utama"]');
-    if (tabUtama) {
-      tabUtama.classList.toggle("hidden", !bolehUtama);
-      if (!bolehUtama && tabUtama.classList.contains("aktif")) {
-        // Kalau sedang di tab yang disembunyikan, pindah ke Dashboard.
+    var labelRole = { ppk: "👑 PPK", operator: "🛠️ Operator", kepegawaian: "🗂️ Kepegawaian",
+      wadir2: "👁️ Wadir II", bau: "👁️ BAU", direktur: "👁️ Direktur" };
+    $("badge-role").textContent = labelRole[role] || role;
+    // Role pemantau (Wadir II/BAU/Direktur): read-only, hanya Dashboard + Rekap (jurnal/absensi).
+    var pemantau = (role === "wadir2" || role === "bau" || role === "direktur");
+    // Tab mana yang DISEMBUNYIKAN per role:
+    //  - utama (Pengaturan & Perangkat): hanya PPK & Operator.
+    //  - master/register/dokumen: pemantau tidak boleh (tidak bisa ubah data / buat dokumen).
+    var sembunyi = {
+      utama: !(role === "ppk" || role === "operator"),
+      master: pemantau,
+      register: pemantau,
+      dokumen: pemantau
+    };
+    Object.keys(sembunyi).forEach(function (d) {
+      var tab = document.querySelector('.tab[data-dash="' + d + '"]');
+      if (!tab) return;
+      tab.classList.toggle("hidden", !!sembunyi[d]);
+      if (sembunyi[d] && tab.classList.contains("aktif")) {
         document.querySelector('.tab[data-dash="beranda"]').click();
       }
-    }
-    // Form Pengaturan (lokasi/jam kerja/akun) hanya untuk PPK; Operator hanya lihat Perangkat.
+    });
+    // Form Pengaturan (lokasi/jam kerja/akun) hanya untuk PPK.
     var cardPengaturan = $("card-pengaturan");
     if (cardPengaturan) cardPengaturan.classList.toggle("hidden", role !== "ppk");
-    // "Ganti Password Saya" untuk Operator & Kepegawaian (PPK ganti lewat Pengaturan).
+    // "Ganti Password Saya" untuk semua non-PPK (Operator/Kepegawaian/pemantau).
     var kotakGantiPw = $("kotak-ganti-pw");
     if (kotakGantiPw) kotakGantiPw.classList.toggle("hidden", role === "ppk");
   }
@@ -377,14 +390,22 @@
       kepegawaianEmailBaru: $("s-kepegawaian-email").value.trim(),
       kepegawaianPasswordBaru: $("s-kepegawaian-password").value,
       operatorEmailBaru: $("s-operator-email").value.trim(),
-      operatorPasswordBaru: $("s-operator-password").value
+      operatorPasswordBaru: $("s-operator-password").value,
+      wadir2EmailBaru: $("s-wadir2-email") ? $("s-wadir2-email").value.trim() : "",
+      wadir2PasswordBaru: $("s-wadir2-password") ? $("s-wadir2-password").value : "",
+      bauEmailBaru: $("s-bau-email") ? $("s-bau-email").value.trim() : "",
+      bauPasswordBaru: $("s-bau-password") ? $("s-bau-password").value : "",
+      direkturEmailBaru: $("s-direktur-email") ? $("s-direktur-email").value.trim() : "",
+      direkturPasswordBaru: $("s-direktur-password") ? $("s-direktur-password").value : ""
     }).then(function (res) {
       pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
       pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
       pesan.classList.remove("hidden");
       if (res.status === "success" && pwBaru) { password = pwBaru; sessionStorage.setItem("pjlp_admin_pw", pwBaru); $("s-password").value = ""; }
       if (res.status === "success" && emailBaru) { email = emailBaru; sessionStorage.setItem("pjlp_admin_email", emailBaru); }
-      if (res.status === "success") { $("s-kepegawaian-password").value = ""; $("s-operator-password").value = ""; }
+      if (res.status === "success") {
+        ["s-kepegawaian-password", "s-operator-password", "s-wadir2-password", "s-bau-password", "s-direktur-password"].forEach(function (id) { if ($(id)) $(id).value = ""; });
+      }
     }).catch(function (err) {
       pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
     }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Pengaturan"; });

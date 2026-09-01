@@ -309,16 +309,23 @@ function rekapData(data, namaSheet, header) {
 }
 
 /* ====================== ADMIN =========================== */
+function peranRole(data) {
+  if (cekAdmin(data)) return "ppk";
+  if (cekOperator(data)) return "operator";
+  if (cekKepegawaian(data)) return "kepegawaian";
+  const pm = cekPemantauRole(data); if (pm) return pm; // wadir2 / bau / direktur
+  return "";
+}
+
 function adminLogin(data) {
-  if (cekAdmin(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "ppk" });
-  if (cekKepegawaian(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "kepegawaian" });
-  if (cekOperator(data)) return jsonOutput({ status: "success", message: "Login berhasil.", role: "operator" });
+  const role = peranRole(data);
+  if (role) return jsonOutput({ status: "success", message: "Login berhasil.", role: role });
   return jsonOutput({ status: "error", message: "Email atau password salah." });
 }
 
 function adminData(data) {
-  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
-  const role = cekAdmin(data) ? "ppk" : (cekOperator(data) ? "operator" : "kepegawaian");
+  const role = peranRole(data);
+  if (!role) return jsonOutput({ status: "error", message: "Email atau password salah." });
   return jsonOutput({ status: "success", role: role, perangkat: listPerangkat(), pengaturan: getPengaturanPublic() });
 }
 
@@ -366,6 +373,12 @@ function gantiPasswordSendiri(data) {
   if (cekAdmin(data)) { p.setProperty("ADMIN_PASSWORD", String(data.passwordBaru)); return jsonOutput({ status: "success", message: "Password PPK diperbarui.", role: "ppk" }); }
   if (cekOperator(data)) { p.setProperty("OPERATOR_PASSWORD", String(data.passwordBaru)); return jsonOutput({ status: "success", message: "Password Operator diperbarui.", role: "operator" }); }
   if (cekKepegawaian(data)) { p.setProperty("KEPEGAWAIAN_PASSWORD", String(data.passwordBaru)); return jsonOutput({ status: "success", message: "Password Kepegawaian diperbarui.", role: "kepegawaian" }); }
+  const pm = cekPemantauRole(data);
+  if (pm) {
+    const cfg = PEMANTAU.filter(function (r) { return r.role === pm; })[0];
+    p.setProperty(cfg.passKey, String(data.passwordBaru));
+    return jsonOutput({ status: "success", message: "Password " + cfg.label + " diperbarui.", role: pm });
+  }
   return jsonOutput({ status: "error", message: "Email atau password lama salah." });
 }
 
@@ -400,9 +413,9 @@ function getDataMaster() {
   });
 }
 function adminDataMaster(data) {
-  // PPK atau Kepegawaian: mengembalikan data sensitif (NIK/NPWP/rekening). Endpoint mandiri
+  // Baca data master (dipakai dashboard kontrak). Staf + pemantau (read-only).
   // PJLP (cekPerangkat) TIDAK memakai fungsi ini dan tidak pernah mengirim data ini ke device biasa.
-  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  if (!cekLihat(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   return jsonOutput({ status: "success", master: getDataMaster() });
 }
 function simpanDataMaster(data) {
@@ -423,7 +436,7 @@ function simpanDataMaster(data) {
 
 /* ============== REGISTER DOKUMEN PENGADAAN (admin-only, referensi) ============== */
 function adminRegisterDokumen(data) {
-  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  if (!cekLihat(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
   const values = getSheetRegisterDokumen().getDataRange().getValues();
   const headers = values.shift();
   const out = values.map(function (row) {
@@ -474,6 +487,19 @@ function simpanPengaturan(data) {
   if (data.operatorPasswordBaru) {
     if (String(data.operatorPasswordBaru).length < 6) return jsonOutput({ status: "error", message: "Password Operator minimal 6 karakter." });
     p.setProperty("OPERATOR_PASSWORD", String(data.operatorPasswordBaru));
+  }
+  // Role pemantau (Wadir II / BAU / Direktur): email + password, dari objek data.pemantau.
+  for (let i = 0; i < PEMANTAU.length; i++) {
+    const r = PEMANTAU[i];
+    const emBaru = data[r.role + "EmailBaru"], pwBaru = data[r.role + "PasswordBaru"];
+    if (emBaru !== undefined && emBaru !== "") {
+      if (String(emBaru).indexOf("@") === -1) return jsonOutput({ status: "error", message: "Email " + r.label + " tidak valid." });
+      p.setProperty(r.emailKey, String(emBaru).trim());
+    }
+    if (pwBaru) {
+      if (String(pwBaru).length < 6) return jsonOutput({ status: "error", message: "Password " + r.label + " minimal 6 karakter." });
+      p.setProperty(r.passKey, String(pwBaru));
+    }
   }
   return jsonOutput({ status: "success", message: "Pengaturan disimpan." });
 }
@@ -529,15 +555,43 @@ function cekOperator(data) {
   const passOk = data.password !== undefined && String(data.password) === pw;
   return emailOk && passOk;
 }
+// Role PEMANTAU (read-only): Wadir II, BAU, Direktur. Hanya melihat Dashboard,
+// Rekap Absensi, dan Jurnal harian semua pegawai. Tidak bisa mengubah apa pun.
+// Belum aktif sampai PPK mengatur email+password-nya lewat Pengaturan.
+var PEMANTAU = [
+  { role: "wadir2", label: "Wadir II", emailKey: "WADIR2_EMAIL", passKey: "WADIR2_PASSWORD" },
+  { role: "bau", label: "BAU", emailKey: "BAU_EMAIL", passKey: "BAU_PASSWORD" },
+  { role: "direktur", label: "Direktur", emailKey: "DIREKTUR_EMAIL", passKey: "DIREKTUR_PASSWORD" }
+];
+function cekPemantauRole(data) {
+  const p = props();
+  for (let i = 0; i < PEMANTAU.length; i++) {
+    const em = p.getProperty(PEMANTAU[i].emailKey) || "", pw = p.getProperty(PEMANTAU[i].passKey) || "";
+    if (!em || !pw) continue;
+    if (data.email !== undefined && String(data.email).trim().toLowerCase() === em.toLowerCase() &&
+        data.password !== undefined && String(data.password) === pw) return PEMANTAU[i].role;
+  }
+  return "";
+}
+function cekPemantau(data) { return cekPemantauRole(data) !== ""; }
+
 // Semua staf berwenang (PPK/Kepegawaian/Operator): akses data PJLP, dokumen, rekap.
 function cekStaf(data) { return cekAdmin(data) || cekKepegawaian(data) || cekOperator(data); }
-// Kelola perangkat (setujui/blokir/edit/hapus): PPK + Operator (bukan Kepegawaian).
+// Boleh MELIHAT (read-only + staf): staf + pemantau. Untuk endpoint baca (adminData,
+// adminDataMaster, adminRegisterDokumen). Endpoint tulis tetap pakai cekStaf/cekAdmin.
+function cekLihat(data) { return cekStaf(data) || cekPemantau(data); }
+// Kelola perangkat (setujui/blokir/edit/hapus): PPK + Operator (bukan Kepegawaian/pemantau).
 function cekAdminAtauOperator(data) { return cekAdmin(data) || cekOperator(data); }
 function isPasswordStaf(pw) {
   if (!pw) return false;
   if (String(pw) === getAdminPassword()) return true;
   const kepPw = getKepegawaianPassword(); if (kepPw && String(pw) === kepPw) return true;
   const opPw = getOperatorPassword(); if (opPw && String(pw) === opPw) return true;
+  const p = props();
+  for (let i = 0; i < PEMANTAU.length; i++) {
+    const mpw = p.getProperty(PEMANTAU[i].passKey) || "";
+    if (mpw && String(pw) === mpw) return true;
+  }
   return false;
 }
 
@@ -585,7 +639,10 @@ function getPengaturanPublic() {
     namaInstansi: s.namaInstansi, jamMasuk: s.jamMasuk, jamPulang: s.jamPulang,
     bufferMasuk: s.bufferMasuk, bufferPulang: s.bufferPulang, abaikanLokasi: s.abaikanLokasi,
     bebasJumat: s.bebasJumat, adminEmail: getAdminEmail(), kepegawaianEmail: getKepegawaianEmail(),
-    operatorEmail: getOperatorEmail()
+    operatorEmail: getOperatorEmail(),
+    wadir2Email: props().getProperty("WADIR2_EMAIL") || "",
+    bauEmail: props().getProperty("BAU_EMAIL") || "",
+    direkturEmail: props().getProperty("DIREKTUR_EMAIL") || ""
   };
 }
 
