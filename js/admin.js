@@ -96,9 +96,11 @@
 
   function pegawaiAktifUnik() {
     // 1 orang bisa punya beberapa perangkat disetujui (NIP sama) - kembalikan 1 baris per NIP unik.
-    // Perangkat ber-role PPK (mis. Firdaus) dikecualikan - bukan PJLP.
+    // Dikecualikan: perangkat ber-role PPK (mis. Firdaus) dan PPPK (paruh/penuh waktu) -
+    // keduanya bukan PJLP, jadi tidak masuk Data Master/gaji/BPJS.
+    function bukanPjlp(d) { return d.role === "PPK" || (d.jenis && d.jenis !== "PJLP"); }
     var terlihat = {}, unik = [];
-    semuaPerangkat.filter(function (d) { return d.status === "disetujui" && d.role !== "PPK"; }).forEach(function (d) {
+    semuaPerangkat.filter(function (d) { return d.status === "disetujui" && !bukanPjlp(d); }).forEach(function (d) {
       var kunci = d.nip ? "nip:" + String(d.nip).trim() : "dev:" + d.deviceId;
       if (terlihat[kunci]) return;
       terlihat[kunci] = true; unik.push(d);
