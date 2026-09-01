@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Jurnal Harian PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .jm-panel { background: #fff; border: 1px solid var(--border); border-radius: var(--radius, 14px); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-card, 0 1px 3px rgba(0,0,0,.06)); }
+    .jm-panel-judul { font-weight: 700; margin-bottom: 10px; }
+    table.jm { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.jm th, table.jm td { border-bottom: 1px solid var(--border); padding: 7px 8px; text-align: left; vertical-align: top; }
+    table.jm th { background: var(--muted-bg, #f3f4f6); font-weight: 600; position: sticky; top: 0; }
+    table.jm tr.klik { cursor: pointer; }
+    table.jm tr.klik:hover { background: #f8fafc; }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .pill-ok { background: var(--success-bg, #dcfce7); color: var(--success, #16a34a); }
+    .pill-no { background: var(--danger-bg, #fee2e2); color: var(--danger, #dc2626); }
+    .pill-jenis { background: var(--warning-bg, #fef3c7); color: var(--warning, #b45309); }
+    .jm-cari { max-width: 320px; }
+    .jm-detail-foto a { margin-right: 6px; }
+    .kosong { text-align: center; color: var(--muted); font-style: italic; padding: 16px; }
+    .tabel-scroll { max-height: 460px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <div class="app wide">
+    <header class="topbar no-print">
+      <div class="brand">
+        <span class="logo">📓</span>
+        <div>
+          <h1>Monitoring Jurnal Harian</h1>
+          <p class="subtitle">Pemantauan jurnal semua pegawai</p>
+        </div>
+      </div>
+      <a class="link-rekap" href="admin.html">&larr; Panel Admin</a>
+    </header>
+
+    <main class="card">
+      <div id="status-akses" class="status err hidden"></div>
+
+      <div id="konten" class="hidden">
+        <div class="filterbar" style="gap:12px; flex-wrap:wrap; align-items:flex-end;">
+          <label style="margin:0;">Bulan<input type="month" id="jm-bulan"></label>
+          <label style="margin:0;" class="jm-cari">Cari pegawai<input type="text" id="jm-cari" placeholder="Nama / NIP..."></label>
+          <button type="button" id="jm-refresh" class="mini">↻ Muat Ulang</button>
+          <span id="jm-status" class="status muted" style="margin:0;"></span>
+        </div>
+
+        <div class="kpi-grid" style="margin-top:14px;">
+          <div class="kpi-card kpi-biru"><div class="kpi-angka" id="k-total">-</div><div class="kpi-label">Pegawai (wajib jurnal)</div></div>
+          <div class="kpi-card kpi-hijau"><div class="kpi-angka" id="k-hariini">-</div><div class="kpi-label">Sudah isi jurnal hari ini</div></div>
+          <div class="kpi-card kpi-merah"><div class="kpi-angka" id="k-belum">-</div><div class="kpi-label">Belum isi hari ini</div></div>
+          <div class="kpi-card kpi-abu"><div class="kpi-angka" id="k-entri">-</div><div class="kpi-label">Total entri bulan ini</div></div>
+        </div>
+
+        <div class="jm-panel">
+          <div class="jm-panel-judul">👥 Rekap per Pegawai <span class="small muted">(klik baris untuk lihat detail jurnalnya)</span></div>
+          <div class="tabel-scroll">
+            <table class="jm">
+              <thead><tr><th>Nama</th><th>NIP/ID</th><th style="text-align:center;">Entri Bln Ini</th><th>Jurnal Terakhir</th><th style="text-align:center;">Hari Ini</th></tr></thead>
+              <tbody id="jm-body-pegawai"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="jm-panel">
+          <div class="jm-panel-judul">🗒️ Detail Jurnal <span id="jm-detail-info" class="small muted"></span></div>
+          <div class="tabel-scroll">
+            <table class="jm">
+              <thead><tr><th>Tanggal</th><th>Jam</th><th>Nama</th><th>Kegiatan</th><th>Foto</th><th>Lokasi</th></tr></thead>
+              <tbody id="jm-body-detail"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/jurnal-monitor.js"></script>
+</body>
+</html>
