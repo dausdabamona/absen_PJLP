@@ -197,7 +197,8 @@
         if (res.deviceStatus === "disetujui") {
           $("absen-nama").textContent = res.nama || "";
           $("absen-nip").textContent = res.nip ? "• " + res.nip : "";
-          tampil("absen"); mulaiReminder(); muatRingkasanSaya();
+          tampil("absen"); mulaiReminder();
+          terapkanJenisUI(res.jenis || "PJLP");
         } else if (res.deviceStatus === "pending") {
           $("pending-nama").textContent = res.nama || ""; tampil("pending");
         } else { tampil("blokir"); }
@@ -213,10 +214,11 @@
     ev.preventDefault();
     const nama = $("d-nama").value.trim();
     const nip = $("d-nip").value.trim();
+    const jenis = $("d-jenis") ? $("d-jenis").value : "PJLP";
     if (!nama) { tampilkanPesan("Nama wajib diisi.", false); return; }
     if (!nip) { tampilkanPesan("NIP/ID wajib diisi (harus sama dengan pendaftaran HP lain Anda).", false); return; }
     const btn = $("btn-daftar"); btn.disabled = true; btn.textContent = "Mengirim...";
-    API.post({ action: "daftarPerangkat", nama: nama, nip: nip })
+    API.post({ action: "daftarPerangkat", nama: nama, nip: nip, jenis: jenis })
       .then(function (res) {
         if (res.status === "success") { $("pending-nama").textContent = nama; tampil("pending"); pesan.classList.add("hidden"); }
         else tampilkanPesan("Gagal: " + (res.message || "kesalahan"), false);
@@ -239,6 +241,24 @@
       pesan.classList.add("hidden");
     });
   });
+
+  // PPPK (paruh/penuh waktu) hanya mengisi jurnal harian — sembunyikan tab Absen & Izin,
+  // langsung buka tab Jurnal. PJLP tetap tampil lengkap + ringkasan absensi.
+  function terapkanJenisUI(jenis) {
+    var pppk = (jenis === "PPPK Paruh Waktu" || jenis === "PPPK Penuh Waktu");
+    var tabAbsen = document.querySelector('#seksi-absen .tab[data-pane="pane-absen"]');
+    var tabIzin = document.querySelector('#seksi-absen .tab[data-pane="pane-izin"]');
+    if (tabAbsen) tabAbsen.classList.toggle("hidden", pppk);
+    if (tabIzin) tabIzin.classList.toggle("hidden", pppk);
+    var lbl = $("absen-jenis");
+    if (lbl) { lbl.textContent = pppk ? jenis : ""; lbl.classList.toggle("hidden", !pppk); }
+    if (pppk) {
+      var tabJurnal = document.querySelector('#seksi-absen .tab[data-pane="pane-jurnal"]');
+      if (tabJurnal) tabJurnal.click();
+    } else {
+      muatRingkasanSaya();
+    }
+  }
 
   /* ---------- Absen ---------- */
   // Jenis ditentukan otomatis: sebelum 12.00 = Masuk, 12.00 ke atas = Pulang.

@@ -264,7 +264,8 @@
       }
       aksi += '<button class="mini danger aksi" data-id="' + esc(d.deviceId) + '" data-act="hapus">Hapus</button>';
       var labelPPK = d.role === "PPK" ? ' <span class="badge menunggu small">PPK</span>' : "";
-      var namaSel = "<td>" + esc(d.nama) + labelPPK + (d.kemungkinanSama ? '<br><span class="small muted">🔗 Kemungkinan sama dengan ' + esc(d.kemungkinanSama) + "</span>" : "") + "</td>";
+      var labelJenis = (d.jenis && d.jenis !== "PJLP") ? ' <span class="badge izin small">' + esc(d.jenis) + "</span>" : "";
+      var namaSel = "<td>" + esc(d.nama) + labelPPK + labelJenis + (d.kemungkinanSama ? '<br><span class="small muted">🔗 Kemungkinan sama dengan ' + esc(d.kemungkinanSama) + "</span>" : "") + "</td>";
       return "<tr>" + namaSel + "<td>" + esc(d.nip || "-") + "</td><td>" + badge(d.status) +
         "</td><td>" + esc(d.didaftarkan || "") + "</td><td class=\"mono small\">" + esc(d.deviceId) + "</td><td class=\"aksi-sel\">" + aksi + "</td></tr>";
     }).join("");
@@ -286,7 +287,9 @@
       if (namaBaru === null) return;
       const nipBaru = prompt("NIP/ID (harus sama persis dengan perangkat lain orang ini agar laporan tergabung):", d.nip || "");
       if (nipBaru === null) return;
-      kirim({ action: "editPerangkat", deviceId: id, namaBaru: namaBaru.trim(), nipBaru: nipBaru.trim() });
+      const jenisBaru = prompt("Jenis Kepegawaian — ketik: PJLP / PPPK Penuh Waktu / PPPK Paruh Waktu\n(PPPK hanya isi jurnal harian, tidak absen):", d.jenis || "PJLP");
+      if (jenisBaru === null) return;
+      kirim({ action: "editPerangkat", deviceId: id, namaBaru: namaBaru.trim(), nipBaru: nipBaru.trim(), jenisBaru: jenisBaru.trim() });
     }
     else kirim({ action: "setStatusPerangkat", deviceId: id, statusBaru: act });
   });

@@ -35,7 +35,14 @@
         <form id="form-daftar" autocomplete="off">
           <label>Nama Lengkap<input type="text" id="d-nama" placeholder="Nama sesuai kontrak" required></label>
           <label>NIP / ID Pegawai<input type="text" id="d-nip" required></label>
-          <p class="seksi-info" style="margin-top:-8px;">Wajib diisi & harus SAMA setiap kali daftar HP baru — supaya laporan dari beberapa HP Anda otomatis tergabung jadi satu.</p>
+          <label>Jenis Kepegawaian
+            <select id="d-jenis">
+              <option value="PJLP">PJLP (absen + jurnal)</option>
+              <option value="PPPK Penuh Waktu">PPPK Penuh Waktu (jurnal harian saja)</option>
+              <option value="PPPK Paruh Waktu">PPPK Paruh Waktu (jurnal harian saja)</option>
+            </select>
+          </label>
+          <p class="seksi-info" style="margin-top:-8px;">NIP/ID wajib & harus SAMA setiap kali daftar HP baru — supaya laporan dari beberapa HP Anda otomatis tergabung. PPPK hanya mengisi jurnal harian (tidak absen).</p>
           <button type="submit" id="btn-daftar" class="submit">Daftarkan Perangkat</button>
         </form>
       </section>
@@ -61,6 +68,7 @@
         <div class="identitas">
           <span>👤 <b id="absen-nama"></b></span>
           <span id="absen-nip" class="muted"></span>
+          <span id="absen-jenis" class="badge menunggu small hidden"></span>
         </div>
 
         <div class="tab-status">

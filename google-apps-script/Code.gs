@@ -39,7 +39,7 @@ const HEADER_IZIN = [
   "Tanggal Selesai", "Alasan", "Foto Surat"
 ];
 const HEADER_PERANGKAT = [
-  "Device ID", "Nama", "NIP/ID", "Status", "Didaftarkan", "Diperbarui", "Role"
+  "Device ID", "Nama", "NIP/ID", "Status", "Didaftarkan", "Diperbarui", "Role", "Jenis Kepegawaian"
 ];
 const HEADER_MASTER_PJLP = [
   "NIP/ID", "Nama", "NIK", "NPWP", "Jabatan 2026", "Alamat",
@@ -154,13 +154,21 @@ function doPost(e) {
 function doGet() { return jsonOutput({ status: "success", message: "API Absensi PJLP aktif." }); }
 
 /* ====================== PERANGKAT ======================== */
+// Jenis kepegawaian yang sah. PPPK (paruh/penuh waktu) HANYA mengisi jurnal harian,
+// tidak absen; PJLP (default) absen + jurnal + izin.
+function normalisasiJenis(j) {
+  const v = String(j || "").trim();
+  return (v === "PPPK Paruh Waktu" || v === "PPPK Penuh Waktu") ? v : "PJLP";
+}
+
 function daftarPerangkat(data) {
   if (!data.deviceId || !data.nama) return jsonOutput({ status: "error", message: "Nama & ID perangkat wajib." });
   if (!data.nip || !String(data.nip).trim()) return jsonOutput({ status: "error", message: "NIP/ID wajib diisi." });
   const ada = cariPerangkat(data.deviceId);
   if (ada) return jsonOutput({ status: "success", deviceStatus: ada.status, message: "Perangkat sudah terdaftar (" + ada.status + ")." });
   const now = new Date();
-  getSheetPerangkat().appendRow([String(data.deviceId), String(data.nama).trim(), data.nip || "", "pending", now, now]);
+  const jenis = normalisasiJenis(data.jenis);
+  getSheetPerangkat().appendRow([String(data.deviceId), String(data.nama).trim(), data.nip || "", "pending", now, now, "", jenis]);
   return jsonOutput({ status: "success", deviceStatus: "pending", message: "Pendaftaran terkirim. Menunggu persetujuan admin." });
 }
 
@@ -169,7 +177,7 @@ function cekPerangkat(data) {
   const set = getPengaturan();
   const base = { status: "success", jamMasuk: set.jamMasuk, jamPulang: set.jamPulang };
   if (!dev) return jsonOutput(Object.assign(base, { terdaftar: false }));
-  return jsonOutput(Object.assign(base, { terdaftar: true, deviceStatus: dev.status, nama: dev.nama, nip: dev.nip }));
+  return jsonOutput(Object.assign(base, { terdaftar: true, deviceStatus: dev.status, nama: dev.nama, nip: dev.nip, jenis: dev.jenis || "PJLP" }));
 }
 
 /* ====================== ABSEN ============================ */
@@ -343,6 +351,7 @@ function editPerangkat(data) {
   const sheet = getSheetPerangkat();
   sheet.getRange(dev.rowIndex, 2).setValue(String(data.namaBaru).trim());
   sheet.getRange(dev.rowIndex, 3).setValue(String(data.nipBaru).trim());
+  if (data.jenisBaru !== undefined) sheet.getRange(dev.rowIndex, 8).setValue(normalisasiJenis(data.jenisBaru));
   sheet.getRange(dev.rowIndex, 6).setValue(new Date());
   return jsonOutput({ status: "success", message: "Data perangkat diperbarui." });
 }
@@ -584,7 +593,7 @@ function getDataPerangkat() {
   const values = getSheetPerangkat().getDataRange().getValues();
   values.shift();
   return values.map(function (r, i) {
-    return { rowIndex: i + 2, deviceId: String(r[0]), nama: r[1], nip: r[2], status: r[3], didaftarkan: r[4], role: r[6] || "" };
+    return { rowIndex: i + 2, deviceId: String(r[0]), nama: r[1], nip: r[2], status: r[3], didaftarkan: r[4], role: r[6] || "", jenis: r[7] || "PJLP" };
   });
 }
 function cariPerangkat(deviceId) {
@@ -594,7 +603,7 @@ function cariPerangkat(deviceId) {
 function listPerangkat() {
   const semua = getDataPerangkat();
   return semua.map(function (d) {
-    const out = { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, role: d.role || "", didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
+    const out = { deviceId: d.deviceId, nama: d.nama, nip: d.nip, status: d.status, role: d.role || "", jenis: d.jenis || "PJLP", didaftarkan: d.didaftarkan instanceof Date ? fmt(d.didaftarkan, "yyyy-MM-dd HH:mm") : d.didaftarkan };
     if (d.status === "pending" && d.nip && d.role !== "PPK") {
       const nipTrim = String(d.nip).trim();
       const cocok = semua.filter(function (x) {
