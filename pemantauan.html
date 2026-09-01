@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pemantauan — Absensi PJLP</title>
+  <meta name="theme-color" content="#0d6efd">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Login -->
+  <main id="seksi-login" class="app card">
+    <div class="brand" style="justify-content:center; margin-bottom:18px;">
+      <span class="logo">👁️</span>
+      <div>
+        <h1>Pemantauan</h1>
+        <p class="subtitle">Absensi PJLP &amp; PPPK</p>
+      </div>
+    </div>
+    <h2 class="seksi-judul">Masuk Pemantau</h2>
+    <p class="seksi-info">Untuk Wadir II, BAU, Direktur, dan Kepegawaian. Hanya melihat (read-only).</p>
+    <form id="form-login" autocomplete="off">
+      <label>Email<input type="email" id="l-email" placeholder="nama@polikpsorong.ac.id" required></label>
+      <label>Password<input type="password" id="password" required></label>
+      <button type="submit" id="btn-login" class="submit">Masuk</button>
+    </form>
+    <div id="login-pesan" class="status err"></div>
+  </main>
+
+  <!-- Shell -->
+  <div class="admin-shell hidden" id="seksi-dashboard">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">
+        <span class="logo">👁️</span>
+        <div>
+          <h1>Pemantauan</h1>
+          <p class="subtitle">Absensi PJLP &amp; PPPK</p>
+        </div>
+      </div>
+      <nav class="admin-nav">
+        <button class="tab aktif" data-dash="jurnal">🗒️ <span>Jurnal Harian</span></button>
+        <button class="tab" data-dash="rekap">📊 <span>Rekap Bulanan</span></button>
+      </nav>
+      <div class="admin-sidebar-footer">
+        <span id="badge-role" class="small muted" style="padding:6px 8px;">👁️ Pemantau</span>
+        <a class="link-rekap" href="#" id="link-keluar">🚪 Keluar</a>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <!-- ====== LAYAR A: JURNAL HARIAN ====== -->
+      <section id="dash-jurnal">
+        <div class="dash-head">
+          <h2 class="seksi-judul" style="flex:1;">🗒️ Jurnal Harian</h2>
+          <span id="dash-tanggal" class="status muted"></span>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-biru"><div class="kpi-angka" id="jk-total">-</div><div class="kpi-label">👥 Pegawai Tercatat</div></div>
+          <div class="kpi-card kpi-hijau"><div class="kpi-angka" id="jk-hariini">-</div><div class="kpi-label">🗒️ Jurnal Masuk Hari Ini</div></div>
+          <div class="kpi-card kpi-abu"><div class="kpi-angka" id="jk-foto">-</div><div class="kpi-label">📷 Dengan Lampiran Foto</div></div>
+          <div class="kpi-card kpi-merah"><div class="kpi-angka" id="jk-belum">-</div><div class="kpi-label">❔ Belum Mengisi</div></div>
+        </div>
+
+        <div class="card">
+          <div class="filterbar">
+            <h2 class="seksi-judul" style="flex:1;">🗒️ Jurnal Kegiatan Hari Ini</h2>
+            <div class="filter-actions"><button type="button" id="j-refresh" class="mini">↻ Muat Ulang</button></div>
+          </div>
+          <div class="tab-status" id="j-foto-tabs">
+            <button class="tab aktif" data-jf="semua">Semua</button>
+            <button class="tab" data-jf="foto">Berfoto</button>
+            <button class="tab" data-jf="tanpa">Tanpa foto</button>
+          </div>
+          <div id="j-info" class="status muted">Memuat...</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tanggal</th><th>Jam</th><th>Nama</th><th>Status</th><th>Kegiatan</th><th>Foto</th><th>Lokasi</th></tr></thead>
+              <tbody id="j-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-panel">
+            <div class="dash-panel-judul">❔ Belum Mengisi Jurnal (hari ini)</div>
+            <div id="panel-belum" class="dash-list status muted">Memuat...</div>
+          </div>
+          <div class="dash-panel">
+            <div class="dash-panel-judul">📊 Jurnal Terkumpul Bulan Ini</div>
+            <div id="panel-terkumpul" class="dash-list status muted">Memuat...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====== LAYAR B: REKAP BULANAN ====== -->
+      <section id="dash-rekap" class="hidden">
+        <div class="dash-head">
+          <h2 class="seksi-judul" style="flex:1;">📊 Rekap Bulanan</h2>
+          <span id="rekap-tanggal" class="status muted"></span>
+        </div>
+
+        <div class="card">
+          <div class="filterbar" style="flex-wrap:wrap; gap:10px; align-items:flex-end;">
+            <label style="margin:0;">Bulan<input type="month" id="f-bulan"></label>
+            <div class="filter-actions">
+              <button type="button" id="btn-ekspor" class="mini primary">⬇ Ekspor CSV</button>
+              <button type="button" id="btn-refresh" class="mini">↻ Muat Ulang</button>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;font-weight:600;color:var(--muted);">Status pegawai</div>
+          <div class="tab-status" id="status-tabs">
+            <button class="tab aktif" data-status="semua">Semua</button>
+            <button class="tab" data-status="PJLP">PJLP</button>
+            <button class="tab" data-status="PPPK">PPPK</button>
+          </div>
+          <div style="margin-top:8px;font-size:12px;font-weight:600;color:var(--muted);">Tampilan</div>
+          <div class="tab-status" id="mode-tabs">
+            <button class="tab aktif" data-mode="ringkasan">📊 Ringkasan</button>
+            <button class="tab" data-mode="absensi">Absensi</button>
+            <button class="tab" data-mode="izin">Izin/Sakit/Cuti</button>
+          </div>
+          <div id="info" class="status muted">Memuat...</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr id="thead-row"></tr></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-panel">
+            <div class="dash-panel-judul">📈 Kepatuhan Jurnal per Minggu</div>
+            <div id="panel-minggu" class="dash-list status muted">Memuat...</div>
+          </div>
+          <div class="dash-panel">
+            <div class="dash-panel-judul">⚠️ Perlu Perhatian</div>
+            <div id="panel-perhatian" class="dash-list status muted">Memuat...</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/pemantauan.js"></script>
+</body>
+</html>
