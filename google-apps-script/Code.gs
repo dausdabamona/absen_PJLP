@@ -129,6 +129,7 @@ function doPost(e) {
       case "absen":              return absen(data);
       case "jurnal":             return jurnal(data);
       case "izin":               return izin(data);
+      case "inputIzinAdmin":     return inputIzinAdmin(data);
       case "rekapAbsensi":       return rekapData(data, SHEET_ABSEN, HEADER_ABSEN);
       case "rekapJurnal":        return rekapData(data, SHEET_JURNAL, HEADER_JURNAL);
       case "rekapIzin":          return rekapData(data, SHEET_IZIN, HEADER_IZIN);
@@ -269,6 +270,26 @@ function izin(data) {
     data.tglMulai, data.tglSelesai || data.tglMulai, String(data.alasan).trim(), fotoUrl
   ]);
   return jsonOutput({ status: "success", message: "Pengajuan " + data.jenis + " berhasil dikirim." });
+}
+
+// Input izin/sakit/cuti oleh admin (PPK/Operator/Kepegawaian) atas nama pegawai.
+// Foto surat WAJIB. Ditandai "[diinput oleh <peran>]" di kolom Alasan.
+function inputIzinAdmin(data) {
+  if (!cekStaf(data)) return jsonOutput({ status: "error", message: "Email atau password salah." });
+  if (!data.nama || !String(data.nama).trim()) return jsonOutput({ status: "error", message: "Pegawai wajib dipilih." });
+  if (JENIS_IZIN.indexOf(data.jenis) === -1) return jsonOutput({ status: "error", message: "Jenis ketidakhadiran tidak valid." });
+  if (!data.tglMulai) return jsonOutput({ status: "error", message: "Tanggal mulai wajib diisi." });
+  if (!data.alasan || !String(data.alasan).trim()) return jsonOutput({ status: "error", message: "Alasan wajib diisi." });
+  if (!data.foto) return jsonOutput({ status: "error", message: "Foto surat wajib dilampirkan." });
+  const now = new Date();
+  const fotoUrl = simpanFoto(data.foto, String(data.nama).trim(), "surat", now);
+  const peran = cekAdmin(data) ? "PPK" : (cekOperator(data) ? "Operator" : "Kepegawaian");
+  const alasan = String(data.alasan).trim() + " [diinput oleh " + peran + "]";
+  getSheetIzin().appendRow([
+    now, data.deviceId || "", String(data.nama).trim(), data.nip || "", data.jenis,
+    data.tglMulai, data.tglSelesai || data.tglMulai, alasan, fotoUrl
+  ]);
+  return jsonOutput({ status: "success", message: "Pengajuan " + data.jenis + " untuk " + String(data.nama).trim() + " tersimpan." });
 }
 
 /* ====================== REKAP =========================== */

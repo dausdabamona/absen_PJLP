@@ -89,7 +89,8 @@
       utama: !(role === "ppk" || role === "operator"),
       master: pemantau,
       register: pemantau,
-      dokumen: pemantau
+      dokumen: pemantau,
+      izin: pemantau
     };
     Object.keys(sembunyi).forEach(function (d) {
       var tab = document.querySelector('.tab[data-dash="' + d + '"]');
@@ -130,6 +131,20 @@
       sel.innerHTML = '<option value="">— pilih pegawai terdaftar —</option>' + opsi;
       sel.value = nilaiLama;
     });
+    // Dropdown Input Izin: SEMUA pegawai disetujui (PJLP + PPPK), bukan PPK.
+    var selIz = $("iz-pilih");
+    if (selIz) {
+      var terlihatIz = {}, opsiIz = [];
+      semuaPerangkat.filter(function (d) { return d.status === "disetujui" && d.role !== "PPK"; }).forEach(function (d) {
+        var k = d.nip ? "nip:" + String(d.nip).trim() : "dev:" + d.deviceId;
+        if (terlihatIz[k]) return; terlihatIz[k] = true;
+        opsiIz.push('<option value="' + esc(d.nip || "") + '" data-device="' + esc(d.deviceId) + '" data-nama="' + esc(d.nama) + '">' +
+          esc(d.nama) + (d.nip ? " (" + esc(d.nip) + ")" : "") + (d.jenis && d.jenis !== "PJLP" ? " — " + esc(d.jenis) : "") + "</option>");
+      });
+      var lamaIz = selIz.value;
+      selIz.innerHTML = '<option value="">— pilih pegawai terdaftar —</option>' + opsiIz.join("");
+      selIz.value = lamaIz;
+    }
   }
 
   /* ---------- Tabel ---------- */
@@ -325,7 +340,7 @@
   $("btn-refresh").addEventListener("click", muatData);
 
   /* ---------- Navigasi dashboard (Pengaturan / Data PJLP / Register / Buat Dokumen) ---------- */
-  var DASH_PANEL = { beranda: $("dash-beranda"), utama: $("dash-utama"), master: $("dash-master"), register: $("dash-register"), dokumen: $("dash-dokumen") };
+  var DASH_PANEL = { beranda: $("dash-beranda"), utama: $("dash-utama"), master: $("dash-master"), register: $("dash-register"), dokumen: $("dash-dokumen"), izin: $("dash-izin") };
   document.querySelectorAll(".tab[data-dash]").forEach(function (t) {
     t.addEventListener("click", function () {
       document.querySelectorAll(".tab[data-dash]").forEach(function (x) { x.classList.remove("aktif"); });
@@ -591,6 +606,59 @@
   // Nominatif Gaji mencakup SEMUA pegawai sekaligus - tidak perlu pilih 1 pegawai dulu.
   $("btn-dok-nominatif").addEventListener("click", function () { window.open("nominatif-gaji.html", "_blank"); });
   $("btn-dok-bpjs").addEventListener("click", function () { window.open("bpjs.html", "_blank"); });
+
+  /* ============== Input Izin/Sakit/Cuti (oleh admin) ============== */
+  var fotoIzinAdmin = null;
+  function kompresGambarAdmin(dataUrl, maxLebar, kualitas, cb) {
+    var img = new Image();
+    img.onload = function () {
+      var skala = Math.min(1, maxLebar / img.width), w = Math.round(img.width * skala), h = Math.round(img.height * skala);
+      var c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      cb(c.toDataURL("image/jpeg", kualitas));
+    };
+    img.src = dataUrl;
+  }
+  if ($("btn-iz-foto")) {
+    $("btn-iz-foto").addEventListener("click", function () { $("iz-foto").click(); });
+    $("iz-foto").addEventListener("change", function () {
+      var file = this.files[0]; if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        kompresGambarAdmin(e.target.result, 1200, 0.7, function (durl) {
+          fotoIzinAdmin = durl; $("iz-preview").src = durl;
+          $("iz-preview-wrap").classList.remove("hidden"); $("btn-iz-foto").textContent = "Ganti Foto Surat";
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+    $("form-izin-admin").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var pesan = $("izin-admin-pesan"), btn = $("btn-iz-simpan");
+      var sel = $("iz-pilih"), opt = sel.selectedOptions[0];
+      if (!sel.value && !(opt && opt.getAttribute("data-nama"))) { alert("Pilih pegawai terlebih dahulu."); return; }
+      if (!$("iz-mulai").value) { alert("Tanggal mulai wajib diisi."); return; }
+      if (!$("iz-alasan").value.trim()) { alert("Alasan wajib diisi."); return; }
+      if (!fotoIzinAdmin) { alert("Foto surat wajib dilampirkan."); return; }
+      btn.disabled = true; btn.textContent = "Menyimpan...";
+      API.post({
+        action: "inputIzinAdmin", email: email, password: password, deviceId: "",
+        nama: opt ? opt.getAttribute("data-nama") : "", nip: sel.value,
+        jenis: $("iz-jenis").value, tglMulai: $("iz-mulai").value, tglSelesai: $("iz-selesai").value,
+        alasan: $("iz-alasan").value.trim(), foto: fotoIzinAdmin
+      }).then(function (res) {
+        pesan.className = "pesan " + (res.status === "success" ? "ok" : "err");
+        pesan.textContent = res.message || (res.status === "success" ? "Tersimpan." : "Gagal.");
+        pesan.classList.remove("hidden");
+        if (res.status === "success") {
+          $("iz-alasan").value = ""; $("iz-mulai").value = ""; $("iz-selesai").value = "";
+          fotoIzinAdmin = null; $("iz-preview-wrap").classList.add("hidden"); $("btn-iz-foto").textContent = "Ambil / Pilih Foto Surat";
+        }
+      }).catch(function (err) {
+        pesan.className = "pesan err"; pesan.textContent = "Gagal: " + err.message; pesan.classList.remove("hidden");
+      }).finally(function () { btn.disabled = false; btn.textContent = "Simpan Pengajuan"; });
+    });
+  }
 
   /* ---------- Auto-login ---------- */
   if (password && email && !API.belumDikonfigurasi()) masukDashboard();

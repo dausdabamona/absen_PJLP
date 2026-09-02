@@ -43,6 +43,7 @@
         <button class="tab" data-dash="master">🧾 <span>Data PJLP</span></button>
         <button class="tab" data-dash="register">📚 <span>Register Dokumen</span></button>
         <button class="tab" data-dash="dokumen">📄 <span>Buat Dokumen</span></button>
+        <button class="tab" data-dash="izin">🗓️ <span>Input Izin/Cuti</span></button>
       </nav>
       <div class="admin-sidebar-footer">
         <span id="badge-role" class="small muted" style="padding:6px 8px;">👑 PPK</span>
@@ -289,6 +290,41 @@
         <p class="seksi-info">Dokumen berikut mencakup SEMUA pegawai sekaligus — tidak perlu pilih 1 pegawai dulu.</p>
         <button type="button" id="btn-dok-nominatif" class="mini primary">💰 Buat Daftar Nominatif Gaji</button>
         <button type="button" id="btn-dok-bpjs" class="mini primary">🏥 Buat Daftar Rincian BPJS</button>
+      </div>
+
+      <!-- Input Izin/Sakit/Cuti (oleh admin) -->
+      <div id="dash-izin" class="card hidden">
+        <h2 class="seksi-judul">🗓️ Input Izin / Sakit / Cuti</h2>
+        <p class="seksi-info">Input ketidakhadiran atas nama pegawai (bila pegawai tidak dapat mengajukan sendiri). Foto surat WAJIB. Tercatat sebagai "[diinput oleh &lt;peran&gt;]".</p>
+        <form id="form-izin-admin" autocomplete="off">
+          <label>Pilih Pegawai
+            <select id="iz-pilih"><option value="">— pilih pegawai terdaftar —</option></select>
+          </label>
+          <label>Jenis
+            <select id="iz-jenis">
+              <option value="Izin">Izin</option>
+              <option value="Sakit">Sakit</option>
+              <option value="Cuti">Cuti</option>
+              <option value="Dinas Luar">Dinas Luar</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </label>
+          <div class="grid2">
+            <label>Tanggal Mulai<input type="date" id="iz-mulai" required></label>
+            <label>Tanggal Selesai <span class="opsional">(opsional)</span><input type="date" id="iz-selesai"></label>
+          </div>
+          <label>Alasan / Keterangan
+            <textarea id="iz-alasan" rows="3" placeholder="Jelaskan alasan ketidakhadiran..." required></textarea>
+          </label>
+          <div class="field-group">
+            <div class="field-head"><span>📄 Foto Surat <span class="opsional">(wajib)</span></span></div>
+            <input type="file" id="iz-foto" accept="image/*" hidden>
+            <button type="button" id="btn-iz-foto" class="photo-btn">Ambil / Pilih Foto Surat</button>
+            <div id="iz-preview-wrap" class="preview hidden"><img id="iz-preview" alt="Pratinjau surat"></div>
+          </div>
+          <button type="submit" id="btn-iz-simpan" class="submit">Simpan Pengajuan</button>
+        </form>
+        <div id="izin-admin-pesan" class="pesan hidden"></div>
       </div>
     </main>
   </div>
