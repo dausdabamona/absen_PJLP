@@ -301,7 +301,11 @@
 
   $("f-bulan").value = bulanIni();
   // Kalau dibuka dari Panel Admin (sudah login), isi otomatis password admin
+  // dan sembunyikan field-nya (staf/kepegawaian langsung lihat semua tanpa ketik).
   var sesiAdminPw = sessionStorage.getItem("pjlp_admin_pw");
-  if (sesiAdminPw) $("f-admin").value = sesiAdminPw;
+  if (sesiAdminPw) {
+    $("f-admin").value = sesiAdminPw;
+    var wrap = $("wrap-admin-pw"); if (wrap) wrap.classList.add("hidden");
+  }
   muatData();
 })();
