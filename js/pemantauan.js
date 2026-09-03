@@ -414,7 +414,7 @@
   $("j-refresh").addEventListener("click", muatSemua);
 
   /* ---------- login ---------- */
-  var LABEL = { ppk: "👑 PPK", operator: "🛠️ Operator", kepegawaian: "🗂️ Kepegawaian", wadir2: "👁️ Wadir II", bau: "👁️ BAU", direktur: "👁️ Direktur" };
+  var LABEL = { ppk: "👑 PPK", operator: "🗂️ Operator Kepegawaian", kepegawaian: "💰 Operator Keuangan", wadir2: "👁️ Wadir II", bau: "👁️ BAU", direktur: "👁️ Direktur" };
   function masuk(role) {
     $("badge-role").textContent = LABEL[role] || ("👁️ " + role);
     $("seksi-login").classList.add("hidden");

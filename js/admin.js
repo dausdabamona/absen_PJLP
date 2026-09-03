@@ -77,7 +77,7 @@
   }
 
   function terapkanRoleUI() {
-    var labelRole = { ppk: "👑 PPK", operator: "🛠️ Operator", kepegawaian: "🗂️ Kepegawaian",
+    var labelRole = { ppk: "👑 PPK", operator: "🗂️ Operator Kepegawaian", kepegawaian: "💰 Operator Keuangan",
       wadir2: "👁️ Wadir II", bau: "👁️ BAU", direktur: "👁️ Direktur" };
     $("badge-role").textContent = labelRole[role] || role;
     // Role pemantau (Wadir II/BAU/Direktur): read-only, hanya Dashboard + Rekap (jurnal/absensi).
@@ -90,7 +90,9 @@
       master: pemantau,
       register: pemantau,
       dokumen: pemantau,
-      izin: pemantau
+      // Input Izin: hanya Operator Kepegawaian (operator) & PPK. Operator Keuangan
+      // (kepegawaian) & pemantau tidak.
+      izin: pemantau || role === "kepegawaian"
     };
     Object.keys(sembunyi).forEach(function (d) {
       var tab = document.querySelector('.tab[data-dash="' + d + '"]');
